@@ -120,7 +120,7 @@ public class DeACoudreActive {
     }
 
     private boolean onPlayerDamage(Game game, ServerPlayerEntity player, DamageSource source, float amount) {
-        if (source == DamageSource.FALL || source == DamageSource.OUT_OF_WORLD) {
+        if (source == DamageSource.FALL) {
 
             if (this.lifeMap.get(PlayerRef.of(player)) < 2) this.eliminatePlayer(game, player);
             else {
@@ -131,6 +131,10 @@ public class DeACoudreActive {
 
                 this.broadcastMessage(game, new LiteralText(String.format("%s lost a life! %s life/lives left!", message.getString(), this.lifeMap.get(PlayerRef.of(player)))).formatted(Formatting.YELLOW));
             }
+        } else if (source == DamageSource.OUT_OF_WORLD) {
+            BlockBounds jumpBoundaries = this.gameMap.getFirstRegion("jumpingArea");
+            Vec3d vec3d = jumpBoundaries.getCenter().add(0, 1, 0);
+            player.teleport(game.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
         }
         return true;
     }
