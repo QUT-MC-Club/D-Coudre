@@ -1,0 +1,30 @@
+{
+  "type": "deacoudre:deacoudre",
+  "map": {
+    "dimension": "plasmid:void",
+    "origin": [0,64,0],
+    "provider": {
+      "type": "deacoudre:deacoudre",
+      "radius": 7,
+      "height": 50
+    }
+  },
+  "players": {
+    "min": 1,
+    "max": 30
+  },
+  "blocks": [
+    {
+      "Name": "minecraft:white_wool",
+      "Properties": {}
+    },
+    {
+      "Name": "minecraft:orange_wool",
+      "Properties": {}
+    },
+    {
+      "Name": "minecraft:green_wool",
+      "Properties": {}
+    }
+  ]
+}

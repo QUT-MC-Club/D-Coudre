@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "deacoudre",
+  "version": "${version}",
+  "name": "DéÀCoudre",
+  "description": "",
+  "authors": [
+    "CatCore"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/deacoudre/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "fr.catcore.deacoudre.DeACoudre"
+    ]
+  },
+  "mixins": [
+    "deacoudre.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.9.0+build.204",
+    "fabric": "*",
+    "minecraft": "1.16.1"
+  }
+}
