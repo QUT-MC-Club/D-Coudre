@@ -52,12 +52,10 @@ public class DeACoudreActive {
         this.spawnLogic = new DeACoudreSpawnLogic(map);
         this.nextJumper = (PlayerRef) this.participants.toArray()[0];
         this.blockStateMap = new HashMap<>();
-        int a = 0;
         List<BlockState> blockList = Arrays.asList(this.config.getPlayerBlocks());
         Collections.shuffle(blockList);
         for (PlayerRef playerRef : this.participants) {
             this.blockStateMap.put(playerRef, blockList.get(new Random().nextInt(blockList.size())));
-            a++;
         }
         this.lifeMap = new HashMap<>();
         for (PlayerRef playerRef : this.participants) {
