@@ -105,6 +105,11 @@ public class DeACoudreMapProvider implements MapProvider<DeACoudreConfig> {
                 builder.setBlockState(mutable, Blocks.SPRUCE_PLANKS.getDefaultState());
             }
         }
+        BlockBounds bounds = new BlockBounds(
+                new BlockPos(-1, height, minZ),
+                new BlockPos(1, height, minZ + 3)
+        );
+        builder.addRegion("jumpingArea", bounds);
     }
 
     @Override
