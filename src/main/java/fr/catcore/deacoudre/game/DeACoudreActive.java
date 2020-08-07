@@ -124,9 +124,9 @@ public class DeACoudreActive {
 
             if (this.lifeMap.get(PlayerRef.of(player)) < 2) this.eliminatePlayer(game, player);
             else {
+                this.spawnParticipant(player);
                 this.lifeMap.replace(PlayerRef.of(player), this.lifeMap.get(PlayerRef.of(player)) - 1);
                 this.nextPlayer();
-                this.spawnParticipant(player);
                 Text message = player.getDisplayName().shallowCopy();
 
                 this.broadcastMessage(game, new LiteralText(String.format("%s lost a life! %s life/lives left!", message.getString(), this.lifeMap.get(PlayerRef.of(player)))).formatted(Formatting.YELLOW));
@@ -193,7 +193,7 @@ public class DeACoudreActive {
             this.broadcastMessage(game, new LiteralText(String.format("It's %s turn!", message.getString())));
             this.turnStarting = false;
         }
-        if (playerEntity.isTouchingWater() && this.participants.contains(this.nextJumper)) {
+        if (game.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
             BlockPos pos = playerEntity.getBlockPos();
             if (game.getWorld().getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
                 && game.getWorld().getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
@@ -210,11 +210,11 @@ public class DeACoudreActive {
             }
             nextPlayer();
             spawnParticipant(playerEntity);
-            WinResult result = this.checkWinResult(game);
-            if (result.isWin()) {
-                this.broadcastWin(game, result);
-                this.closeTime = time + 20 * 5;
-            }
+        }
+        WinResult result = this.checkWinResult(game);
+        if (result.isWin()) {
+            this.broadcastWin(game, result);
+            this.closeTime = time + 20 * 5;
         }
     }
 
