@@ -45,6 +45,9 @@ public class DeACoudreActive {
 
     private final DeACoudreScoreboard scoreboard;
 
+    private final boolean ignoreWinState;
+    private long closeTime = -1;
+
     private DeACoudreActive(GameMap map, DeACoudreConfig config, Set<PlayerRef> participants) {
         this.config = config;
         this.gameMap = map;
@@ -62,6 +65,7 @@ public class DeACoudreActive {
             this.lifeMap.put(playerRef, config.getLife());
         }
         this.scoreboard = new DeACoudreScoreboard();
+        this.ignoreWinState = this.participants.size() <= 1;
     }
 
     public static Game open(GameMap map, DeACoudreConfig config, Set<PlayerRef> participants) {
@@ -175,6 +179,11 @@ public class DeACoudreActive {
 
     private void tick(Game game) {
         ServerPlayerEntity playerEntity = this.nextJumper.getEntity(game.getWorld());
+        long time = game.getWorld().getTime();
+        if (this.closeTime > 0) {
+            this.tickClosing(game, time);
+            return;
+        }
         if (this.turnStarting && this.participants.contains(this.nextJumper)) {
             BlockBounds jumpBoundaries = this.gameMap.getFirstRegion("jumpingArea");
             Vec3d vec3d = jumpBoundaries.getCenter().add(0, 1, 0);
@@ -201,6 +210,31 @@ public class DeACoudreActive {
             }
             nextPlayer();
             spawnParticipant(playerEntity);
+            WinResult result = this.checkWinResult(game);
+            if (result.isWin()) {
+                this.broadcastWin(game, result);
+                this.closeTime = time + 20 * 5;
+            }
+        }
+    }
+
+    private void broadcastWin(Game game, WinResult result) {
+        ServerPlayerEntity winningPlayer = result.getWinningPlayer();
+
+        Text message;
+        if (winningPlayer != null) {
+            message = winningPlayer.getDisplayName().shallowCopy().append(" has won the game!").formatted(Formatting.GOLD);
+        } else {
+            message = new LiteralText("The game ended, but nobody won!").formatted(Formatting.GOLD);
+        }
+
+        this.broadcastMessage(game, message);
+        this.broadcastSound(game, SoundEvents.ENTITY_VILLAGER_YES);
+    }
+
+    private void tickClosing(Game game, long time) {
+        if (time >= this.closeTime) {
+            game.close();
         }
     }
 
@@ -224,6 +258,57 @@ public class DeACoudreActive {
                 this.turnStarting = true;
                 break;
             }
+        }
+    }
+
+    private WinResult checkWinResult(Game game) {
+        // for testing purposes: don't end the game if we only ever had one participant
+        if (this.ignoreWinState) {
+            return WinResult.no();
+        }
+
+        ServerWorld world = game.getWorld();
+
+        ServerPlayerEntity winningPlayer = null;
+
+        for (PlayerRef ref : this.participants) {
+            ServerPlayerEntity player = ref.getEntity(world);
+            if (player != null) {
+                // we still have more than one player remaining
+                if (winningPlayer != null) {
+                    return WinResult.no();
+                }
+
+                winningPlayer = player;
+            }
+        }
+
+        return WinResult.win(winningPlayer);
+    }
+
+    static class WinResult {
+        final ServerPlayerEntity winningPlayer;
+        final boolean win;
+
+        private WinResult(ServerPlayerEntity winningPlayer, boolean win) {
+            this.winningPlayer = winningPlayer;
+            this.win = win;
+        }
+
+        static WinResult no() {
+            return new WinResult(null, false);
+        }
+
+        static WinResult win(ServerPlayerEntity player) {
+            return new WinResult(player, true);
+        }
+
+        public boolean isWin() {
+            return this.win;
+        }
+
+        public ServerPlayerEntity getWinningPlayer() {
+            return this.winningPlayer;
         }
     }
 }
