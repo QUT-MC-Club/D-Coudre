@@ -1,14 +1,14 @@
 package fr.catcore.deacoudre.game;
 
 import fr.catcore.deacoudre.DeACoudre;
-import net.gegy1000.plasmid.game.Game;
-import net.gegy1000.plasmid.game.JoinResult;
+import fr.catcore.deacoudre.game.map.DeACoudreMap;
+import net.gegy1000.plasmid.game.GameWorld;
 import net.gegy1000.plasmid.game.event.*;
-import net.gegy1000.plasmid.game.map.GameMap;
+import net.gegy1000.plasmid.game.player.JoinResult;
 import net.gegy1000.plasmid.game.rule.GameRule;
 import net.gegy1000.plasmid.game.rule.RuleResult;
+import net.gegy1000.plasmid.util.BlockBounds;
 import net.gegy1000.plasmid.util.PlayerRef;
-import net.gegy1000.plasmid.world.BlockBounds;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.damage.DamageSource;
@@ -25,12 +25,15 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class DeACoudreActive {
 
     private final DeACoudreConfig config;
 
-    private final GameMap gameMap;
+    private final GameWorld gameWorld;
+    private final DeACoudreMap gameMap;
 
     private final Set<PlayerRef> participants;
 
@@ -44,16 +47,17 @@ public class DeACoudreActive {
 
     private boolean turnStarting = true;
 
-    private final DeACoudreScoreboard scoreboard;
+//    private final DeACoudreScoreboard scoreboard;
 
     private final boolean ignoreWinState;
     private long closeTime = -1;
 
-    private DeACoudreActive(GameMap map, DeACoudreConfig config, Set<PlayerRef> participants) {
+    private DeACoudreActive(GameWorld gameWorld, DeACoudreMap map, DeACoudreConfig config, Set<PlayerRef> participants) {
+        this.gameWorld = gameWorld;
         this.config = config;
         this.gameMap = map;
         this.participants = new HashSet<>(participants);
-        this.spawnLogic = new DeACoudreSpawnLogic(map);
+        this.spawnLogic = new DeACoudreSpawnLogic(gameWorld, map);
         this.nextJumper = (PlayerRef) this.participants.toArray()[0];
         this.blockStateMap = new HashMap<>();
         List<BlockState> blockList = Arrays.asList(this.config.getPlayerBlocks());
@@ -63,85 +67,80 @@ public class DeACoudreActive {
         }
         this.lifeMap = new HashMap<>();
         for (PlayerRef playerRef : this.participants) {
-            this.lifeMap.put(playerRef, config.getLife());
+            this.lifeMap.put(playerRef, config.life);
         }
-        this.scoreboard = new DeACoudreScoreboard();
+//        this.scoreboard = new DeACoudreScoreboard();
         this.ignoreWinState = this.participants.size() <= 1;
     }
 
-    public static Game open(GameMap map, DeACoudreConfig config, Set<PlayerRef> participants) {
-        DeACoudreActive active = new DeACoudreActive(map, config, participants);
+    public static void open(GameWorld gameWorld, DeACoudreMap map, DeACoudreConfig config) {
+        Set<PlayerRef> participants = gameWorld.getPlayers().stream()
+                .map(PlayerRef::of)
+                .collect(Collectors.toSet());
+        DeACoudreActive active = new DeACoudreActive(gameWorld, map, config, participants);
 
-        Game.Builder builder = Game.builder();
-        builder.setMap(map);
+        gameWorld.newGame(builder -> {
+            builder.setRule(GameRule.ALLOW_CRAFTING, RuleResult.DENY);
+            builder.setRule(GameRule.ALLOW_PORTALS, RuleResult.DENY);
+            builder.setRule(GameRule.ALLOW_PVP, RuleResult.DENY);
+            builder.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
+            builder.setRule(GameRule.FALL_DAMAGE, RuleResult.ALLOW);
+            builder.setRule(GameRule.ENABLE_HUNGER, RuleResult.DENY);
 
-        builder.setRule(GameRule.ALLOW_CRAFTING, RuleResult.DENY);
-        builder.setRule(GameRule.ALLOW_PORTALS, RuleResult.DENY);
-        builder.setRule(GameRule.ALLOW_PVP, RuleResult.DENY);
-        builder.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
-        builder.setRule(GameRule.FALL_DAMAGE, RuleResult.ALLOW);
-        builder.setRule(GameRule.ENABLE_HUNGER, RuleResult.DENY);
+            builder.on(GameOpenListener.EVENT, active::onOpen);
+            builder.on(GameCloseListener.EVENT, active::onClose);
 
-        builder.on(GameOpenListener.EVENT, active::open);
-        builder.on(GameCloseListener.EVENT, active::close);
+            builder.on(OfferPlayerListener.EVENT, player -> JoinResult.ok());
+            builder.on(PlayerAddListener.EVENT, active::addPlayer);
 
-        builder.on(OfferPlayerListener.EVENT, (game, player) -> JoinResult.ok());
-        builder.on(PlayerAddListener.EVENT, active::addPlayer);
+            builder.on(GameTickListener.EVENT, active::tick);
 
-        builder.on(GameTickListener.EVENT, active::tick);
-
-        builder.on(PlayerDamageListener.EVENT, active::onPlayerDamage);
-        builder.on(PlayerDeathListener.EVENT, active::onPlayerDeath);
-        builder.on(PlayerRejoinListener.EVENT, active::rejoinPlayer);
-
-        return builder.build();
+            builder.on(PlayerDamageListener.EVENT, active::onPlayerDamage);
+            builder.on(PlayerDeathListener.EVENT, active::onPlayerDeath);
+        });
     }
 
-    private void open(Game game) {
-        ServerWorld world = game.getWorld();
+    private void onOpen() {
+        ServerWorld world = this.gameWorld.getWorld();
         for (PlayerRef ref : this.participants) {
             ref.ifOnline(world, this::spawnParticipant);
         }
-        this.scoreboard.create(game);
-        this.broadcastMessage(game, new LiteralText(String.format("All player start with %s life(s).", this.config.getLife())));
+//        this.scoreboard.create(game);
+        this.broadcastMessage(new LiteralText(String.format("All player start with %s life(s).", this.config.life)));
     }
 
-    private void close(Game game) {
+    private void onClose() {
 
     }
 
-    private void addPlayer(Game game, ServerPlayerEntity player) {
+    private void addPlayer(ServerPlayerEntity player) {
         if (!this.participants.contains(PlayerRef.of(player))) {
             this.spawnSpectator(player);
         }
     }
 
-    private void rejoinPlayer(Game game, ServerPlayerEntity player) {
-        this.spawnSpectator(player);
-    }
-
-    private boolean onPlayerDamage(Game game, ServerPlayerEntity player, DamageSource source, float amount) {
+    private boolean onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         if (source == DamageSource.FALL) {
 
-            if (this.lifeMap.get(PlayerRef.of(player)) < 2) this.eliminatePlayer(game, player);
+            if (this.lifeMap.get(PlayerRef.of(player)) < 2) this.eliminatePlayer(player);
             else {
                 this.spawnParticipant(player);
                 this.lifeMap.replace(PlayerRef.of(player), this.lifeMap.get(PlayerRef.of(player)) - 1);
                 this.nextPlayer();
                 Text message = player.getDisplayName().shallowCopy();
 
-                this.broadcastMessage(game, new LiteralText(String.format("%s lost a life! %s life/lives left!", message.getString(), this.lifeMap.get(PlayerRef.of(player)))).formatted(Formatting.YELLOW));
+                this.broadcastMessage(new LiteralText(String.format("%s lost a life! %s life/lives left!", message.getString(), this.lifeMap.get(PlayerRef.of(player)))).formatted(Formatting.YELLOW));
             }
         } else if (source == DamageSource.OUT_OF_WORLD) {
-            BlockBounds jumpBoundaries = this.gameMap.getFirstRegion("jumpingArea");
-            Vec3d vec3d = jumpBoundaries.getCenter().add(0, 1, 0);
-            player.teleport(game.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
+            BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
+            Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
+            player.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
         }
         return true;
     }
 
-    private boolean onPlayerDeath(Game game, ServerPlayerEntity player, DamageSource source) {
-        this.eliminatePlayer(game, player);
+    private boolean onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
+        this.eliminatePlayer(player);
         return true;
     }
 
@@ -150,12 +149,12 @@ public class DeACoudreActive {
         this.spawnLogic.spawnPlayer(player);
     }
 
-    private void eliminatePlayer(Game game, ServerPlayerEntity player) {
+    private void eliminatePlayer(ServerPlayerEntity player) {
         Text message = player.getDisplayName().shallowCopy().append(" has been eliminated!")
                 .formatted(Formatting.RED);
 
-        this.broadcastMessage(game, message);
-        this.broadcastSound(game, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP);
+        this.broadcastMessage(message);
+        this.broadcastSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP);
 
         this.spawnSpectator(player);
         PlayerRef eliminated = PlayerRef.of(player);
@@ -165,16 +164,16 @@ public class DeACoudreActive {
         this.blockStateMap.remove(eliminated);
     }
 
-    private void broadcastMessage(Game game, Text message) {
-        game.onlinePlayers().forEach(player -> {
+    private void broadcastMessage(Text message) {
+        for (ServerPlayerEntity player : this.gameWorld.getPlayers()) {
             player.sendMessage(message, false);
-        });
+        };
     }
 
-    private void broadcastSound(Game game, SoundEvent sound) {
-        game.onlinePlayers().forEach(player -> {
+    private void broadcastSound(SoundEvent sound) {
+        for (ServerPlayerEntity player : this.gameWorld.getPlayers()) {
             player.playSound(sound, SoundCategory.PLAYERS, 1.0F, 1.0F);
-        });
+        };
     }
 
     private void spawnSpectator(ServerPlayerEntity player) {
@@ -182,20 +181,20 @@ public class DeACoudreActive {
         this.spawnLogic.spawnPlayer(player);
     }
 
-    private void tick(Game game) {
-        ServerPlayerEntity playerEntity = this.nextJumper.getEntity(game.getWorld());
-        long time = game.getWorld().getTime();
+    private void tick() {
+        ServerPlayerEntity playerEntity = this.nextJumper.getEntity(this.gameWorld.getWorld());
+        long time = this.gameWorld.getWorld().getTime();
         if (this.closeTime > 0) {
-            this.tickClosing(game, time);
+            this.tickClosing(this.gameWorld, time);
             return;
         }
         if (this.turnStarting && this.participants.contains(this.nextJumper)) {
-            BlockBounds jumpBoundaries = this.gameMap.getFirstRegion("jumpingArea");
-            Vec3d vec3d = jumpBoundaries.getCenter().add(0, 1, 0);
-            playerEntity.teleport(game.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
+            BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
+            Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
+            playerEntity.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
             Text message = playerEntity.getDisplayName().shallowCopy();
 
-            this.broadcastMessage(game, new LiteralText(String.format("It's %s turn!", message.getString())));
+            this.broadcastMessage(new LiteralText(String.format("It's %s turn!", message.getString())));
             this.turnStarting = false;
         }
         if (playerEntity == null || this.nextJumper == null) {
@@ -206,32 +205,32 @@ public class DeACoudreActive {
                 DeACoudre.LOGGER.warn("nextJumper is null! Attempting to get the next player.");
                 nextPlayer();
             }
-        } else if (game.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
+        } else if (this.gameWorld.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
             BlockPos pos = playerEntity.getBlockPos();
-            if (game.getWorld().getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
-                && game.getWorld().getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
-                && game.getWorld().getBlockState(pos.north()) != Blocks.WATER.getDefaultState()
-                && game.getWorld().getBlockState(pos.south()) != Blocks.WATER.getDefaultState()
+            if (this.gameWorld.getWorld().getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
+                && this.gameWorld.getWorld().getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
+                && this.gameWorld.getWorld().getBlockState(pos.north()) != Blocks.WATER.getDefaultState()
+                && this.gameWorld.getWorld().getBlockState(pos.south()) != Blocks.WATER.getDefaultState()
             ) {
-                game.getWorld().setBlockState(pos, Blocks.EMERALD_BLOCK.getDefaultState());
+                this.gameWorld.getWorld().setBlockState(pos, Blocks.EMERALD_BLOCK.getDefaultState());
                 this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) + 1);
                 Text message = playerEntity.getDisplayName().shallowCopy();
 
-                this.broadcastMessage(game, new LiteralText(String.format("%s made a dé a coudre! They are winning an additionnal life! %s lives left!", message.getString(), this.lifeMap.get(this.nextJumper))).formatted(Formatting.GREEN));
+                this.broadcastMessage(new LiteralText(String.format("%s made a dé a coudre! They are winning an additionnal life! %s lives left!", message.getString(), this.lifeMap.get(this.nextJumper))).formatted(Formatting.GREEN));
             } else {
-                game.getWorld().setBlockState(pos, this.blockStateMap.get(this.nextJumper));
+                this.gameWorld.getWorld().setBlockState(pos, this.blockStateMap.get(this.nextJumper));
             }
             nextPlayer();
             spawnParticipant(playerEntity);
         }
-        WinResult result = this.checkWinResult(game);
+        WinResult result = this.checkWinResult();
         if (result.isWin()) {
-            this.broadcastWin(game, result);
+            this.broadcastWin(result);
             this.closeTime = time + 20 * 5;
         }
     }
 
-    private void broadcastWin(Game game, WinResult result) {
+    private void broadcastWin(WinResult result) {
         ServerPlayerEntity winningPlayer = result.getWinningPlayer();
 
         Text message;
@@ -241,13 +240,13 @@ public class DeACoudreActive {
             message = new LiteralText("The game ended, but nobody won!").formatted(Formatting.GOLD);
         }
 
-        this.broadcastMessage(game, message);
-        this.broadcastSound(game, SoundEvents.ENTITY_VILLAGER_YES);
+        this.broadcastMessage(message);
+        this.broadcastSound(SoundEvents.ENTITY_VILLAGER_YES);
     }
 
-    private void tickClosing(Game game, long time) {
+    private void tickClosing(GameWorld game, long time) {
         if (time >= this.closeTime) {
-            game.close();
+            game.closeWorld();
         }
     }
 
@@ -274,13 +273,13 @@ public class DeACoudreActive {
         }
     }
 
-    private WinResult checkWinResult(Game game) {
+    private WinResult checkWinResult() {
         // for testing purposes: don't end the game if we only ever had one participant
         if (this.ignoreWinState) {
             return WinResult.no();
         }
 
-        ServerWorld world = game.getWorld();
+        ServerWorld world = this.gameWorld.getWorld();
 
         ServerPlayerEntity winningPlayer = null;
 

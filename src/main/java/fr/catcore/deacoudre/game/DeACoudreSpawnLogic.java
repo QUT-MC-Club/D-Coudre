@@ -1,8 +1,7 @@
 package fr.catcore.deacoudre.game;
 
-import fr.catcore.deacoudre.DeACoudre;
-import net.gegy1000.plasmid.game.map.GameMap;
-import net.gegy1000.plasmid.world.BlockBounds;
+import fr.catcore.deacoudre.game.map.DeACoudreMap;
+import net.gegy1000.plasmid.game.GameWorld;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -11,9 +10,11 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.GameMode;
 
 public class DeACoudreSpawnLogic {
-    private final GameMap map;
+    private final GameWorld gameWorld;
+    private final DeACoudreMap map;
 
-    public DeACoudreSpawnLogic(GameMap map) {
+    public DeACoudreSpawnLogic(GameWorld gameWorld, DeACoudreMap map) {
+        this.gameWorld = gameWorld;
         this.map = map;
     }
 
@@ -36,9 +37,9 @@ public class DeACoudreSpawnLogic {
     }
 
     public void spawnPlayer(ServerPlayerEntity player) {
-        ServerWorld world = this.map.getWorld();
+        ServerWorld world = this.gameWorld.getWorld();
 
-        BlockPos pos = new BlockPos(0,66,0);
+        BlockPos pos = new BlockPos(0,3,0);
         player.teleport(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0.0F, 0.0F);
     }
 }

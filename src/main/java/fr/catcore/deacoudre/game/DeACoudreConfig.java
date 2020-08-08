@@ -2,34 +2,29 @@ package fr.catcore.deacoudre.game;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import fr.catcore.deacoudre.game.map.DeACoudreMapConfig;
 import net.gegy1000.plasmid.game.config.GameConfig;
-import net.gegy1000.plasmid.game.config.GameMapConfig;
 import net.gegy1000.plasmid.game.config.PlayerConfig;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class DeACoudreConfig implements GameConfig {
 
     public static final Codec<DeACoudreConfig> CODEC = RecordCodecBuilder.create(instance -> {
-        Codec<GameMapConfig<DeACoudreConfig>> mapCodec = GameMapConfig.codec();
-
         return instance.group(
-                mapCodec.fieldOf("map").forGetter(DeACoudreConfig::getMapConfig),
-                PlayerConfig.CODEC.fieldOf("players").forGetter(DeACoudreConfig::getPlayerConfig),
-                Codec.INT.fieldOf("life").forGetter(DeACoudreConfig::getLife)
+                DeACoudreMapConfig.CODEC.fieldOf("map").forGetter(config -> config.mapConfig),
+                PlayerConfig.CODEC.fieldOf("players").forGetter(config -> config.playerConfig),
+                Codec.INT.fieldOf("life").forGetter(config -> config.life)
         ).apply(instance, DeACoudreConfig::new);
     });
 
-    private final GameMapConfig<DeACoudreConfig> mapConfig;
-    private final PlayerConfig playerConfig;
+    public final DeACoudreMapConfig mapConfig;
+    public final PlayerConfig playerConfig;
     private static final BlockState[] playerBlocks;
-    private final int life;
+    public final int life;
 
     public DeACoudreConfig(
-            GameMapConfig<DeACoudreConfig> mapConfig,
+            DeACoudreMapConfig mapConfig,
             PlayerConfig playerConfig,
             int life
     ) {
@@ -38,20 +33,8 @@ public class DeACoudreConfig implements GameConfig {
         this.life = life;
     }
 
-    public int getLife() {
-        return life;
-    }
-
-    public GameMapConfig<DeACoudreConfig> getMapConfig() {
-        return mapConfig;
-    }
-
     public BlockState[] getPlayerBlocks() {
         return playerBlocks;
-    }
-
-    public PlayerConfig getPlayerConfig() {
-        return playerConfig;
     }
 
     static {
