@@ -1,5 +1,6 @@
 package fr.catcore.deacoudre.game;
 
+import fr.catcore.deacoudre.DeACoudre;
 import net.gegy1000.plasmid.game.Game;
 import net.gegy1000.plasmid.game.JoinResult;
 import net.gegy1000.plasmid.game.event.*;
@@ -197,7 +198,15 @@ public class DeACoudreActive {
             this.broadcastMessage(game, new LiteralText(String.format("It's %s turn!", message.getString())));
             this.turnStarting = false;
         }
-        if (game.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
+        if (playerEntity == null || this.nextJumper == null) {
+            if (playerEntity == null) {
+                DeACoudre.LOGGER.warn("playerEntity is null!");
+            }
+            if (this.nextJumper == null) {
+                DeACoudre.LOGGER.warn("nextJumper is null! Attempting to get the next player.");
+                nextPlayer();
+            }
+        } else if (game.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
             BlockPos pos = playerEntity.getBlockPos();
             if (game.getWorld().getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
                 && game.getWorld().getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
