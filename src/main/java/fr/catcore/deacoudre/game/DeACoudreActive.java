@@ -106,7 +106,7 @@ public class DeACoudreActive {
             ref.ifOnline(world, this::spawnParticipant);
         }
 //        this.scoreboard.create(game);
-        this.broadcastMessage(new LiteralText(String.format("All player start with %s life(s).", this.config.life)));
+        this.broadcastMessage(new LiteralText(String.format("All player start with %s life/lives.", this.config.life)));
     }
 
     private void onClose() {
@@ -194,7 +194,7 @@ public class DeACoudreActive {
             playerEntity.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
             Text message = playerEntity.getDisplayName().shallowCopy();
 
-            this.broadcastMessage(new LiteralText(String.format("It's %s turn!", message.getString())));
+            this.broadcastMessage(new LiteralText(String.format("It's %s's turn!", message.getString())));
             this.turnStarting = false;
         }
         if (playerEntity == null || this.nextJumper == null) {
@@ -216,7 +216,7 @@ public class DeACoudreActive {
                 this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) + 1);
                 Text message = playerEntity.getDisplayName().shallowCopy();
 
-                this.broadcastMessage(new LiteralText(String.format("%s made a dé a coudre! They are winning an additionnal life! %s lives left!", message.getString(), this.lifeMap.get(this.nextJumper))).formatted(Formatting.GREEN));
+                this.broadcastMessage(new LiteralText(String.format("%s made a dé à coudre! They are winning an additional life! %s lives left!", message.getString(), this.lifeMap.get(this.nextJumper))).formatted(Formatting.GREEN));
             } else {
                 this.gameWorld.getWorld().setBlockState(pos, this.blockStateMap.get(this.nextJumper));
             }
