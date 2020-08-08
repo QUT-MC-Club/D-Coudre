@@ -65,8 +65,12 @@ public class DeACoudreMapProvider implements MapProvider<DeACoudreConfig> {
 
         for (int x = -4; x <= 4; x++) {
             for (int z = -4; z <= 4; z++) {
-                for (int y = 2; y <= 4; y++) {
+                for (int y = 2; y <= 5; y++) {
                     if (x == -4 || x == 4 || z == -4 || z == 4) {
+                        mutable.set(x, y, z);
+                        builder.setBlockState(mutable, Blocks.BARRIER.getDefaultState());
+                    }
+                    if (y == 5) {
                         mutable.set(x, y, z);
                         builder.setBlockState(mutable, Blocks.BARRIER.getDefaultState());
                     }
@@ -97,6 +101,7 @@ public class DeACoudreMapProvider implements MapProvider<DeACoudreConfig> {
 
     private void buildJumpingPlatform(GameMapBuilder builder, DeACoudreConfig config) {
         BlockPos.Mutable mutable = new BlockPos.Mutable();
+        BlockPos.Mutable barrierPos = new BlockPos.Mutable();
         int minZ = 5 + (2* radius) + 1;
 
         for (int z = minZ; z <= minZ + 3; z++) {
@@ -104,6 +109,36 @@ public class DeACoudreMapProvider implements MapProvider<DeACoudreConfig> {
                 mutable.set(x, height, z);
                 builder.setBlockState(mutable, Blocks.SPRUCE_PLANKS.getDefaultState());
             }
+        }
+        BlockPos[] barrier = new BlockPos[]{
+                new BlockPos(-2, height + 1, minZ + 1),
+                new BlockPos(-2, height + 1, minZ + 2),
+                new BlockPos(-2, height + 1, minZ + 3),
+                new BlockPos(-2, height + 1, minZ + 4),
+                new BlockPos(-1, height + 1, minZ + 4),
+                new BlockPos(0, height + 1, minZ + 4),
+                new BlockPos(1, height + 1, minZ + 4),
+                new BlockPos(2, height + 1, minZ + 4),
+                new BlockPos(2, height + 1, minZ + 3),
+                new BlockPos(2, height + 1, minZ + 2),
+                new BlockPos(2, height + 1, minZ + 1),
+
+                new BlockPos(-2, height + 2, minZ + 1),
+                new BlockPos(-2, height + 2, minZ + 2),
+                new BlockPos(-2, height + 2, minZ + 3),
+                new BlockPos(-2, height + 2, minZ + 4),
+                new BlockPos(-1, height + 2, minZ + 4),
+                new BlockPos(0, height + 2, minZ + 4),
+                new BlockPos(1, height + 2, minZ + 4),
+                new BlockPos(2, height + 2, minZ + 4),
+                new BlockPos(2, height + 2, minZ + 3),
+                new BlockPos(2, height + 2, minZ + 2),
+                new BlockPos(2, height + 2, minZ + 1)
+        };
+
+        for (BlockPos pos : barrier) {
+            barrierPos.set(pos.getX(), pos.getY(), pos.getZ());
+            builder.setBlockState(barrierPos, Blocks.BARRIER.getDefaultState());
         }
         BlockBounds bounds = new BlockBounds(
                 new BlockPos(-1, height, minZ),
