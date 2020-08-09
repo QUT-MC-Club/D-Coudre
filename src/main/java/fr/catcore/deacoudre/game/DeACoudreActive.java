@@ -213,6 +213,7 @@ public class DeACoudreActive {
             }
         } else if (this.gameWorld.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
             BlockPos pos = playerEntity.getBlockPos();
+            boolean coudre = false;
             if (this.gameWorld.getWorld().getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
                 && this.gameWorld.getWorld().getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
                 && this.gameWorld.getWorld().getBlockState(pos.north()) != Blocks.WATER.getDefaultState()
@@ -223,11 +224,18 @@ public class DeACoudreActive {
                 Text message = playerEntity.getDisplayName().shallowCopy();
 
                 this.broadcastMessage(new LiteralText(String.format("%s made a dé à coudre! They are winning an additional life! %s lives left!", message.getString(), this.lifeMap.get(this.nextJumper))).formatted(Formatting.GREEN));
+                coudre = true;
             } else {
                 this.gameWorld.getWorld().setBlockState(pos, this.blockStateMap.get(this.nextJumper));
             }
             nextPlayer();
             spawnParticipant(playerEntity);
+            if (coudre) {
+                this.broadcastSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
+                this.broadcastSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
+            } else {
+                this.broadcastSound(SoundEvents.AMBIENT_UNDERWATER_ENTER);
+            }
         }
         WinResult result = this.checkWinResult();
         if (result.isWin()) {
