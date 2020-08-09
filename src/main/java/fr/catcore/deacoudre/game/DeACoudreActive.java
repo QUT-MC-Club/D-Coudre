@@ -191,6 +191,12 @@ public class DeACoudreActive {
         if (this.turnStarting && this.participants.contains(this.nextJumper)) {
             BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
             Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
+            if (playerEntity == null || this.nextJumper == null) {
+                this.broadcastMessage(new LiteralText("nextJumper is null! Attempting to get the next player."));
+                nextPlayer();
+                playerEntity = this.nextJumper.getEntity(this.gameWorld.getWorld());
+                this.broadcastMessage(new LiteralText("Next player is " + playerEntity.getName().getString()));
+            }
             playerEntity.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
             Text message = playerEntity.getDisplayName().shallowCopy();
 
@@ -252,9 +258,11 @@ public class DeACoudreActive {
 
     private void nextPlayer() {
         boolean bool = false;
+        boolean bool2 = true;
         for (PlayerRef playerRef : participants) {
             if (playerRef == this.nextJumper) {
                 bool = true;
+                bool2 = false;
                 continue;
             }
             if (bool) {
@@ -264,7 +272,7 @@ public class DeACoudreActive {
                 break;
             }
         }
-        if (bool) {
+        if (bool || bool2) {
             for (PlayerRef playerRef : participants) {
                 this.nextJumper = playerRef;
                 this.turnStarting = true;
