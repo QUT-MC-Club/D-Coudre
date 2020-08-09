@@ -32,7 +32,7 @@ public class DeACoudreActive {
 
     private final DeACoudreConfig config;
 
-    private final GameWorld gameWorld;
+    public final GameWorld gameWorld;
     private final DeACoudreMap gameMap;
 
     private final Set<PlayerRef> participants;
@@ -43,11 +43,11 @@ public class DeACoudreActive {
 
     private final DeACoudreSpawnLogic spawnLogic;
 
-    private PlayerRef nextJumper;
+    public PlayerRef nextJumper;
 
     private boolean turnStarting = true;
 
-//    private final DeACoudreScoreboard scoreboard;
+    private final DeACoudreScoreboard scoreboard;
 
     private final boolean ignoreWinState;
     private long closeTime = -1;
@@ -69,8 +69,16 @@ public class DeACoudreActive {
         for (PlayerRef playerRef : this.participants) {
             this.lifeMap.put(playerRef, config.life);
         }
-//        this.scoreboard = new DeACoudreScoreboard();
+        this.scoreboard = DeACoudreScoreboard.create(this);
         this.ignoreWinState = this.participants.size() <= 1;
+    }
+
+    public Set<PlayerRef> participants() {
+        return this.participants;
+    }
+
+    public Map<PlayerRef, Integer> lifes() {
+        return this.lifeMap;
     }
 
     public static void open(GameWorld gameWorld, DeACoudreMap map, DeACoudreConfig config) {
@@ -105,12 +113,11 @@ public class DeACoudreActive {
         for (PlayerRef ref : this.participants) {
             ref.ifOnline(world, this::spawnParticipant);
         }
-//        this.scoreboard.create(game);
-        this.broadcastMessage(new LiteralText(String.format("All player start with %s life/lives.", this.config.life)));
+        this.broadcastMessage(new LiteralText(String.format("All player start with %s life/lives.", this.config.life)).formatted(Formatting.GREEN));
     }
 
     private void onClose() {
-
+        this.scoreboard.close();
     }
 
     private void addPlayer(ServerPlayerEntity player) {
@@ -126,7 +133,7 @@ public class DeACoudreActive {
             else {
                 this.spawnParticipant(player);
                 this.lifeMap.replace(PlayerRef.of(player), this.lifeMap.get(PlayerRef.of(player)) - 1);
-                this.nextPlayer();
+                this.nextJumper = this.nextPlayer(true);
                 Text message = player.getDisplayName().shallowCopy();
 
                 this.broadcastMessage(new LiteralText(String.format("%s lost a life! %s life/lives left!", message.getString(), this.lifeMap.get(PlayerRef.of(player)))).formatted(Formatting.YELLOW));
@@ -158,7 +165,7 @@ public class DeACoudreActive {
 
         this.spawnSpectator(player);
         PlayerRef eliminated = PlayerRef.of(player);
-        nextPlayer();
+        this.nextJumper = nextPlayer(true);
         this.participants.remove(eliminated);
         this.lifeMap.remove(eliminated);
         this.blockStateMap.remove(eliminated);
@@ -182,6 +189,8 @@ public class DeACoudreActive {
     }
 
     private void tick() {
+        this.updateExperienceBar();
+        this.scoreboard.tick();
         ServerPlayerEntity playerEntity = this.nextJumper.getEntity(this.gameWorld.getWorld());
         long time = this.gameWorld.getWorld().getTime();
         if (this.closeTime > 0) {
@@ -192,15 +201,16 @@ public class DeACoudreActive {
             BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
             Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
             if (playerEntity == null || this.nextJumper == null) {
-                this.broadcastMessage(new LiteralText("nextJumper is null! Attempting to get the next player."));
-                nextPlayer();
+                this.broadcastMessage(new LiteralText("nextJumper is null! Attempting to get the next player.").formatted(Formatting.RED));
+                this.nextJumper = nextPlayer(false);
                 playerEntity = this.nextJumper.getEntity(this.gameWorld.getWorld());
                 this.broadcastMessage(new LiteralText("Next player is " + playerEntity.getName().getString()));
+                this.scoreboard.tick();
             }
             playerEntity.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
             Text message = playerEntity.getDisplayName().shallowCopy();
 
-            this.broadcastMessage(new LiteralText(String.format("It's %s's turn!", message.getString())));
+            this.broadcastMessage(new LiteralText(String.format("It's %s's turn!", message.getString())).formatted(Formatting.BLUE));
             this.turnStarting = false;
         }
         if (playerEntity == null || this.nextJumper == null) {
@@ -209,7 +219,7 @@ public class DeACoudreActive {
             }
             if (this.nextJumper == null) {
                 DeACoudre.LOGGER.warn("nextJumper is null! Attempting to get the next player.");
-                nextPlayer();
+                this.nextJumper = nextPlayer(true);
             }
         } else if (this.gameWorld.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
             BlockPos pos = playerEntity.getBlockPos();
@@ -223,12 +233,12 @@ public class DeACoudreActive {
                 this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) + 1);
                 Text message = playerEntity.getDisplayName().shallowCopy();
 
-                this.broadcastMessage(new LiteralText(String.format("%s made a dé à coudre! They are winning an additional life! %s lives left!", message.getString(), this.lifeMap.get(this.nextJumper))).formatted(Formatting.GREEN));
+                this.broadcastMessage(new LiteralText(String.format("%s made a dé à coudre! They are winning an additional life! %s lives left!", message.getString(), this.lifeMap.get(this.nextJumper))).formatted(Formatting.AQUA));
                 coudre = true;
             } else {
                 this.gameWorld.getWorld().setBlockState(pos, this.blockStateMap.get(this.nextJumper));
             }
-            nextPlayer();
+            this.nextJumper = nextPlayer(true);
             spawnParticipant(playerEntity);
             if (coudre) {
                 this.broadcastSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
@@ -241,6 +251,15 @@ public class DeACoudreActive {
         if (result.isWin()) {
             this.broadcastWin(result);
             this.closeTime = time + 20 * 5;
+        }
+    }
+
+    private void updateExperienceBar() {
+        for (PlayerRef playerRef : this.participants) {
+            if (playerRef == null) continue;
+            ServerPlayerEntity playerEntity = playerRef.getEntity(this.gameWorld.getWorld());
+            if (playerEntity == null) continue;
+            if (this.lifeMap.containsKey(playerRef)) playerEntity.setExperienceLevel(this.lifeMap.get(playerRef));
         }
     }
 
@@ -264,29 +283,35 @@ public class DeACoudreActive {
         }
     }
 
-    private void nextPlayer() {
+    public PlayerRef nextPlayer(boolean newTurn) {
         boolean bool = false;
         boolean bool2 = true;
+        PlayerRef next = this.nextJumper;
         for (PlayerRef playerRef : participants) {
-            if (playerRef == this.nextJumper) {
+            if (playerRef == next) {
                 bool = true;
                 bool2 = false;
                 continue;
             }
             if (bool) {
                 bool = false;
-                this.nextJumper = playerRef;
-                this.turnStarting = true;
+                next = playerRef;
+                if (newTurn) {
+                    this.turnStarting = true;
+                }
                 break;
             }
         }
         if (bool || bool2) {
             for (PlayerRef playerRef : participants) {
-                this.nextJumper = playerRef;
-                this.turnStarting = true;
+                next = playerRef;
+                if (newTurn) {
+                    this.turnStarting = true;
+                }
                 break;
             }
         }
+        return next;
     }
 
     private WinResult checkWinResult() {
