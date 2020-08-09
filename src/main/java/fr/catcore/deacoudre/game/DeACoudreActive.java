@@ -51,6 +51,8 @@ public class DeACoudreActive {
 
     private final boolean ignoreWinState;
     private long closeTime = -1;
+    private long ticks;
+    private long seconds;
 
     private DeACoudreActive(GameWorld gameWorld, DeACoudreMap map, DeACoudreConfig config, Set<PlayerRef> participants) {
         this.gameWorld = gameWorld;
@@ -189,6 +191,7 @@ public class DeACoudreActive {
     }
 
     private void tick() {
+        this.ticks++;
         this.updateExperienceBar();
         this.scoreboard.tick();
         ServerPlayerEntity playerEntity = this.nextJumper.getEntity(this.gameWorld.getWorld());
@@ -198,6 +201,8 @@ public class DeACoudreActive {
             return;
         }
         if (this.turnStarting && this.participants.contains(this.nextJumper)) {
+            this.ticks = 0;
+            this.seconds = 0;
             BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
             Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
             if (playerEntity == null || this.nextJumper == null) {
@@ -245,6 +250,18 @@ public class DeACoudreActive {
                 this.broadcastSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
             } else {
                 this.broadcastSound(SoundEvents.AMBIENT_UNDERWATER_ENTER);
+            }
+        }
+        if (this.ticks % 20 == 0 && !this.turnStarting) {
+            this.seconds++;
+        }
+        if (this.seconds % 20 == 0 && !this.turnStarting && this.nextJumper != null && playerEntity != null) {
+            this.broadcastMessage(new LiteralText(String.format("%s was to slow to jump and lost a life (%s)", playerEntity.getName().getString(), this.lifeMap.get(this.nextJumper) - 1)).formatted(Formatting.YELLOW));
+            this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) - 1);
+            this.nextJumper = nextPlayer(true);
+            spawnParticipant(playerEntity);
+            if (this.lifeMap.get(PlayerRef.of(playerEntity)) < 1) {
+                eliminatePlayer(playerEntity);
             }
         }
         WinResult result = this.checkWinResult();
