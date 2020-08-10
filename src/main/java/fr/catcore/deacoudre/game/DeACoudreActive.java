@@ -328,7 +328,7 @@ public class DeACoudreActive {
                 break;
             }
         }
-        if (next == this.nextJumper) {
+        if (next == this.nextJumper && !this.ignoreWinState) {
             DeACoudre.LOGGER.warn("next is equals to nextJumper, something might be wrong!");
         }
         return next;

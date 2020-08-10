@@ -13,9 +13,11 @@ import java.util.concurrent.CompletableFuture;
 public class DeACoudreMapGenerator {
 
     private final DeACoudreMapConfig config;
+    private final DeACoudreMapConfig.MapShape shape;
 
     public DeACoudreMapGenerator(DeACoudreMapConfig config) {
         this.config = config;
+        this.shape = DeACoudreMapConfig.MapShape.valueOf(config.shape);
     }
 
     public CompletableFuture<DeACoudreMap> create() {
@@ -41,7 +43,7 @@ public class DeACoudreMapGenerator {
         for (int x = -4; x <= 4; x++) {
             for (int z = -4; z <= 4; z++) {
                 mutable.set(x, 2, z);
-                builder.setBlockState(mutable, Blocks.SPRUCE_PLANKS.getDefaultState());
+                builder.setBlockState(mutable, this.config.spawnBlock);
             }
         }
 
@@ -65,20 +67,7 @@ public class DeACoudreMapGenerator {
         BlockPos.Mutable mutablePosWater = new BlockPos.Mutable();
         BlockPos.Mutable mutablePosBorder = new BlockPos.Mutable();
 
-        for (int z = 5 + config.radius + (-config.radius); z <= 5 + (2* config.radius); z++) {
-            for (int x = -config.radius; x <= config.radius; x++) {
-                mutablePosBorder.set(x, 1, z);
-                builder.setBlockState(mutablePosBorder, Blocks.SPRUCE_WOOD.getDefaultState());
-            }
-        }
-        for (int z = 5 + config.radius + (-config.radius); z <= 5 + (2* config.radius); z++) {
-            for (int x = -config.radius; x <= config.radius; x++) {
-                mutablePosBorder.set(x, 2, z);
-                mutablePosWater.set(x, 2, z);
-                if (z == 5 + config.radius + (-config.radius) || z == 5 + (2* config.radius) || x == -config.radius || x == config.radius) builder.setBlockState(mutablePosBorder, Blocks.SPRUCE_WOOD.getDefaultState());
-                else builder.setBlockState(mutablePosWater, Blocks.WATER.getDefaultState());
-            }
-        }
+        shape.generatePool(this.config, builder, mutablePosWater, mutablePosBorder);
     }
 
     private void buildJumpingPlatform(MapTemplate builder) {
@@ -89,7 +78,7 @@ public class DeACoudreMapGenerator {
         for (int z = minZ; z <= minZ + 3; z++) {
             for (int x = -1; x <= 1; x++) {
                 mutable.set(x, config.height + 1, z);
-                builder.setBlockState(mutable, Blocks.SPRUCE_PLANKS.getDefaultState());
+                builder.setBlockState(mutable, this.config.jumpPlatformBlock);
             }
         }
         BlockPos[] barrier = new BlockPos[]{
