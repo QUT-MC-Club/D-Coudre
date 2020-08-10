@@ -357,6 +357,16 @@ public class DeACoudreActive {
             }
         }
 
+        BlockBounds pool = this.gameMap.getTemplate().getFirstRegion("pool");
+        boolean isFull = true;
+        for (BlockPos pos : pool.iterate()) {
+            if (this.gameWorld.getWorld().getBlockState(pos) == Blocks.WATER.getDefaultState()) isFull = false;
+        }
+
+        if (isFull) {
+            return WinResult.win(null);
+        }
+
         return WinResult.win(winningPlayer);
     }
 

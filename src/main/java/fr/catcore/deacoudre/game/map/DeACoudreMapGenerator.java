@@ -68,6 +68,12 @@ public class DeACoudreMapGenerator {
         BlockPos.Mutable mutablePosBorder = new BlockPos.Mutable();
 
         shape.generatePool(this.config, builder, mutablePosWater, mutablePosBorder);
+
+        BlockBounds bounds = new BlockBounds(
+                new BlockPos(-config.radius, 2, -config.radius),
+                new BlockPos(config.radius, 2, config.radius)
+        );
+        builder.addRegion("pool", bounds);
     }
 
     private void buildJumpingPlatform(MapTemplate builder) {
