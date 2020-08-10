@@ -203,7 +203,7 @@ public class DeACoudreActive {
         if (this.turnStarting && this.participants.contains(this.nextJumper)) {
             this.ticks = 0;
             this.seconds = 0;
-            BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
+            BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingPlatform");
             Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
             if (playerEntity == null || this.nextJumper == null) {
                 this.broadcastMessage(new LiteralText("nextJumper is null! Attempting to get the next player.").formatted(Formatting.RED));
@@ -255,7 +255,8 @@ public class DeACoudreActive {
         if (this.ticks % 20 == 0 && !this.turnStarting) {
             this.seconds++;
         }
-        if (this.seconds % 20 == 0 && !this.turnStarting && this.nextJumper != null && playerEntity != null) {
+        BlockBounds jumpingArea = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
+        if (this.seconds % 20 == 0 && !this.turnStarting && this.nextJumper != null && playerEntity != null && jumpingArea.contains(playerEntity.getBlockPos())) {
             this.broadcastMessage(new LiteralText(String.format("%s was to slow to jump and lost a life (%s)", playerEntity.getName().getString(), this.lifeMap.get(this.nextJumper) - 1)).formatted(Formatting.YELLOW));
             this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) - 1);
             this.nextJumper = nextPlayer(true);

@@ -115,6 +115,11 @@ public class DeACoudreMapGenerator {
                 new BlockPos(-1, config.height, minZ),
                 new BlockPos(1, config.height, minZ + 3)
         );
-        builder.addRegion("jumpingArea", bounds);
+        BlockBounds bounds1 = new BlockBounds(
+                new BlockPos(-2, config.height, minZ),
+                new BlockPos(2, config.height + 2, minZ + 4)
+        );
+        builder.addRegion("jumpingPlatform", bounds);
+        builder.addRegion("jumpingArea", bounds1);
     }
 }
