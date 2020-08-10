@@ -81,7 +81,7 @@ public class DeACoudreScoreboard implements AutoCloseable {
             DeACoudre.LOGGER.warn("nextJumper is null!");
         } else {
             ServerPlayerEntity currentPlayer = currentJumper.getEntity(this.game.gameWorld.getWorld());
-            ServerPlayerEntity nextPlayer = currentJumper.getEntity(this.game.gameWorld.getWorld());
+            ServerPlayerEntity nextPlayer = nextJumper.getEntity(this.game.gameWorld.getWorld());
             lines.add("Current Jumper: " + currentPlayer.getName().getString());
             lines.add("");
             lines.add("Next Jumper: " + nextPlayer.getName().getString());
