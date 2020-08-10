@@ -319,7 +319,7 @@ public class DeACoudreActive {
                 break;
             }
         }
-        if (bool || bool2) {
+        if ((bool || bool2) && next == this.nextJumper) {
             for (PlayerRef playerRef : participants) {
                 next = playerRef;
                 if (newTurn) {
@@ -327,6 +327,9 @@ public class DeACoudreActive {
                 }
                 break;
             }
+        }
+        if (next == this.nextJumper) {
+            DeACoudre.LOGGER.warn("next is equals to nextJumper, something might be wrong!");
         }
         return next;
     }
