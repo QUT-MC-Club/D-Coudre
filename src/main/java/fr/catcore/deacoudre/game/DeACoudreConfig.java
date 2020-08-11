@@ -3,12 +3,11 @@ package fr.catcore.deacoudre.game;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import fr.catcore.deacoudre.game.map.DeACoudreMapConfig;
-import xyz.nucleoid.plasmid.game.config.GameConfig;
 import xyz.nucleoid.plasmid.game.config.PlayerConfig;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 
-public class DeACoudreConfig implements GameConfig {
+public class DeACoudreConfig {
 
     public static final Codec<DeACoudreConfig> CODEC = RecordCodecBuilder.create(instance -> {
         return instance.group(

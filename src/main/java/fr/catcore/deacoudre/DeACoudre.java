@@ -13,14 +13,12 @@ public class DeACoudre implements ModInitializer {
     public static final String ID = "deacoudre";
     public static final Logger LOGGER = LogManager.getLogger(ID);
 
-    public static final GameType<DeACoudreConfig> TYPE = GameType.register(
-            new Identifier(ID, "deacoudre"),
-            DeACoudreWaiting::open,
-            DeACoudreConfig.CODEC
-    );
-
     @Override
     public void onInitialize() {
-//        MapProvider.REGISTRY.register(new Identifier(ID, "deacoudre"), DeACoudreMapGenerator.CODEC);
+        GameType.register(
+                new Identifier(ID, "deacoudre"),
+                DeACoudreWaiting::open,
+                DeACoudreConfig.CODEC
+        );
     }
 }

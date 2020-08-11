@@ -25,7 +25,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class DeACoudreActive {
@@ -154,8 +153,7 @@ public class DeACoudreActive {
     }
 
     private void spawnParticipant(ServerPlayerEntity player) {
-        this.spawnLogic.resetPlayer(player, GameMode.ADVENTURE);
-        this.spawnLogic.spawnPlayer(player);
+        this.spawnLogic.spawnPlayer(player, GameMode.ADVENTURE);
     }
 
     private void eliminatePlayer(ServerPlayerEntity player) {
@@ -186,8 +184,7 @@ public class DeACoudreActive {
     }
 
     private void spawnSpectator(ServerPlayerEntity player) {
-        this.spawnLogic.resetPlayer(player, GameMode.SPECTATOR);
-        this.spawnLogic.spawnPlayer(player);
+        this.spawnLogic.spawnPlayer(player, GameMode.SPECTATOR);
     }
 
     private void tick() {

@@ -18,13 +18,7 @@ public class DeACoudreSpawnLogic {
         this.map = map;
     }
 
-    public void resetPlayer(ServerPlayerEntity player, GameMode gameMode) {
-        player.inventory.clear();
-        player.getEnderChestInventory().clear();
-        player.clearStatusEffects();
-        player.setHealth(20.0F);
-        player.getHungerManager().setFoodLevel(20);
-        player.fallDistance = 0.0F;
+    public void spawnPlayer(ServerPlayerEntity player, GameMode gameMode) {
         player.setGameMode(gameMode);
 
         player.addStatusEffect(new StatusEffectInstance(
@@ -34,9 +28,7 @@ public class DeACoudreSpawnLogic {
                 true,
                 false
         ));
-    }
 
-    public void spawnPlayer(ServerPlayerEntity player) {
         ServerWorld world = this.gameWorld.getWorld();
 
         BlockPos pos = new BlockPos(0,3,0);

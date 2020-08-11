@@ -2,8 +2,9 @@ package fr.catcore.deacoudre.game;
 
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
 import fr.catcore.deacoudre.game.map.DeACoudreMapGenerator;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.math.Vec3d;
 import xyz.nucleoid.plasmid.game.GameWorld;
-import xyz.nucleoid.plasmid.game.GameWorldState;
 import xyz.nucleoid.plasmid.game.StartResult;
 import xyz.nucleoid.plasmid.game.config.PlayerConfig;
 import xyz.nucleoid.plasmid.game.event.OfferPlayerListener;
@@ -16,6 +17,7 @@ import xyz.nucleoid.plasmid.game.rule.RuleResult;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.GameMode;
+import xyz.nucleoid.plasmid.game.world.bubble.BubbleWorldConfig;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -33,11 +35,16 @@ public class DeACoudreWaiting {
         this.spawnLogic = new DeACoudreSpawnLogic(gameWorld, map);
     }
 
-    public static CompletableFuture<Void> open(GameWorldState worldState, DeACoudreConfig config) {
+    public static CompletableFuture<Void> open(MinecraftServer minecraftServer, DeACoudreConfig config) {
         DeACoudreMapGenerator generator = new DeACoudreMapGenerator(config.mapConfig);
 
         return generator.create().thenAccept(map -> {
-            GameWorld gameWorld = worldState.openWorld(map.asGenerator());
+            BubbleWorldConfig worldConfig = new BubbleWorldConfig()
+                    .setGenerator(map.asGenerator())
+                    .setDefaultGameMode(GameMode.SPECTATOR)
+                    .setSpawnPos(new Vec3d(0,3,0));
+
+            GameWorld gameWorld = GameWorld.open(minecraftServer, worldConfig);
 
             DeACoudreWaiting waiting = new DeACoudreWaiting(gameWorld, map, config);
 
@@ -79,16 +86,11 @@ public class DeACoudreWaiting {
     }
 
     private void addPlayer(ServerPlayerEntity player) {
-        this.spawnPlayer(player);
+        this.spawnLogic.spawnPlayer(player, GameMode.ADVENTURE);
     }
 
     private boolean onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
-        this.spawnPlayer(player);
+        this.spawnLogic.spawnPlayer(player, GameMode.ADVENTURE);
         return true;
-    }
-
-    private void spawnPlayer(ServerPlayerEntity player) {
-        this.spawnLogic.resetPlayer(player, GameMode.ADVENTURE);
-        this.spawnLogic.spawnPlayer(player);
     }
 }
