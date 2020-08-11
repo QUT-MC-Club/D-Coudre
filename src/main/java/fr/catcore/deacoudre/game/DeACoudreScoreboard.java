@@ -82,10 +82,14 @@ public class DeACoudreScoreboard implements AutoCloseable {
         } else {
             ServerPlayerEntity currentPlayer = currentJumper.getEntity(this.game.gameWorld.getWorld());
             ServerPlayerEntity nextPlayer = nextJumper.getEntity(this.game.gameWorld.getWorld());
-            lines.add("Current Jumper: " + currentPlayer.getName().getString());
-            lines.add("");
-            lines.add("Next Jumper: " + nextPlayer.getName().getString());
-            lines.add("");
+            if (currentPlayer != null) {
+                lines.add("Current Jumper: " + currentPlayer.getName().getString());
+                lines.add("");
+            }
+            if (nextPlayer != null) {
+                lines.add("Next Jumper: " + nextPlayer.getName().getString());
+                lines.add("");
+            }
         }
         this.render(lines.toArray(new String[0]));
 
