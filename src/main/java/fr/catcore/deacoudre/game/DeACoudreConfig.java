@@ -3,8 +3,8 @@ package fr.catcore.deacoudre.game;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import fr.catcore.deacoudre.game.map.DeACoudreMapConfig;
-import net.gegy1000.plasmid.game.config.GameConfig;
-import net.gegy1000.plasmid.game.config.PlayerConfig;
+import xyz.nucleoid.plasmid.game.config.GameConfig;
+import xyz.nucleoid.plasmid.game.config.PlayerConfig;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 

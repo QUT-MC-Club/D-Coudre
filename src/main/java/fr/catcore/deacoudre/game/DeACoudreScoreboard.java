@@ -1,7 +1,7 @@
 package fr.catcore.deacoudre.game;
 
 import fr.catcore.deacoudre.DeACoudre;
-import net.gegy1000.plasmid.util.PlayerRef;
+import xyz.nucleoid.plasmid.util.PlayerRef;
 import net.minecraft.scoreboard.ScoreboardCriterion;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.ScoreboardPlayerScore;

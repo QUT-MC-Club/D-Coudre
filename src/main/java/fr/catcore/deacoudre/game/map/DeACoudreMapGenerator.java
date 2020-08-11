@@ -1,10 +1,8 @@
 package fr.catcore.deacoudre.game.map;
 
-import fr.catcore.deacoudre.game.DeACoudreConfig;
-import net.gegy1000.plasmid.game.map.template.MapTemplate;
-import net.gegy1000.plasmid.util.BlockBounds;
+import xyz.nucleoid.plasmid.game.map.template.MapTemplate;
+import xyz.nucleoid.plasmid.util.BlockBounds;
 import net.minecraft.block.Blocks;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 
