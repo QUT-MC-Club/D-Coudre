@@ -96,8 +96,12 @@ public class DeACoudreScoreboard implements AutoCloseable {
         ServerScoreboard scoreboard = this.game.gameWorld.getWorld().getServer().getScoreboard();
         clear(scoreboard, lifeObjective);
         for (Map.Entry<PlayerRef, Integer> entry : this.game.lifes().entrySet()) {
-            scoreboard.getPlayerScore(entry.getKey().getEntity(this.game.gameWorld.getWorld()).getName().getString(), lifeObjective)
+            if (entry.getKey() == null) continue;
+            ServerPlayerEntity playerEntity = entry.getKey().getEntity(this.game.gameWorld.getWorld());
+            if (playerEntity != null) {
+                scoreboard.getPlayerScore(playerEntity.getName().getString(), lifeObjective)
                     .setScore(entry.getValue());
+            }
         }
     }
 
