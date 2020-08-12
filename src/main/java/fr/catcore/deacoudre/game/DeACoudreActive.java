@@ -131,8 +131,10 @@ public class DeACoudreActive {
 
     private boolean onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         if (player == null) return true;
-        double playerY = player.getPos().y;
-        if (source == DamageSource.FALL && playerY < this.config.mapConfig.height + 1) {
+        Vec3d playerPos = player.getPos();
+        BlockBounds poolBounds = this.gameMap.getTemplate().getFirstRegion("pool");
+        boolean isInPool = poolBounds.contains((int)playerPos.x, (int)playerPos.y, (int)playerPos.z);
+        if (source == DamageSource.FALL && ((playerPos.y < 10 && playerPos.y > 6) || isInPool)) {
 
             if (this.lifeMap.get(PlayerRef.of(player)) < 2) this.eliminatePlayer(player);
             else {
