@@ -182,7 +182,10 @@ public class DeACoudreActive {
         this.participants.remove(eliminated);
         this.lifeMap.remove(eliminated);
         this.blockStateMap.remove(eliminated);
-        this.nextJumper = nextPlayer(true);
+
+        if (this.singleplayer || PlayerRef.of(player) == this.nextJumper) {
+           this.nextJumper = nextPlayer(true);
+        }
     }
 
     private void broadcastMessage(Text message) {
