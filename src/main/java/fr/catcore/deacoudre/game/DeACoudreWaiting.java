@@ -48,7 +48,7 @@ public class DeACoudreWaiting {
 
             DeACoudreWaiting waiting = new DeACoudreWaiting(gameWorld, map, config);
 
-            gameWorld.newGame(builder -> {
+            gameWorld.openGame(builder -> {
                 builder.setRule(GameRule.CRAFTING, RuleResult.DENY);
                 builder.setRule(GameRule.PORTALS, RuleResult.DENY);
                 builder.setRule(GameRule.PVP, RuleResult.DENY);
