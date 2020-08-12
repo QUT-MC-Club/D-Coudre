@@ -145,6 +145,7 @@ public class DeACoudreActive {
             BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
             Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
             player.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
+            player.setVelocity(new Vec3d(0,0,0));
         }
         return true;
     }
@@ -222,6 +223,7 @@ public class DeACoudreActive {
                 this.scoreboard.tick();
             }
             playerEntity.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
+            playerEntity.setVelocity(new Vec3d(0,0,0));
             Text message = playerEntity.getDisplayName().shallowCopy();
 
             this.broadcastMessage(new LiteralText(String.format("It's %s's turn!", message.getString())).formatted(Formatting.BLUE));
