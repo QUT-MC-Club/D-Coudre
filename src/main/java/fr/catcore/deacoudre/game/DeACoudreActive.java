@@ -50,7 +50,7 @@ public class DeACoudreActive {
 
     private final DeACoudreScoreboard scoreboard;
 
-    private final boolean ignoreWinState;
+    private final boolean singleplayer;
     private long closeTime = -1;
     private long ticks;
     private long seconds;
@@ -73,7 +73,7 @@ public class DeACoudreActive {
             this.lifeMap.put(playerRef, config.life);
         }
         this.scoreboard = DeACoudreScoreboard.create(this);
-        this.ignoreWinState = this.participants.size() <= 1;
+        this.singleplayer = this.participants.size() <= 1;
     }
 
     public Set<PlayerRef> participants() {
@@ -132,6 +132,8 @@ public class DeACoudreActive {
 
     private boolean onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         if (player == null) return true;
+        if (!this.singleplayer && PlayerRef.of(player) != this.nextJumper) return true;
+
         Vec3d playerPos = player.getPos();
         BlockBounds poolBounds = this.gameMap.getTemplate().getFirstRegion("pool");
         boolean isInPool = poolBounds.contains((int)playerPos.x, (int)playerPos.y, (int)playerPos.z);
@@ -342,7 +344,7 @@ public class DeACoudreActive {
                 break;
             }
         }
-        if (next == this.nextJumper && !this.ignoreWinState) {
+        if (next == this.nextJumper && !this.singleplayer) {
             DeACoudre.LOGGER.warn("next is equals to nextJumper, something might be wrong!");
             return null;
         }
@@ -351,7 +353,7 @@ public class DeACoudreActive {
 
     private WinResult checkWinResult() {
         // for testing purposes: don't end the game if we only ever had one participant
-        if (this.ignoreWinState) {
+        if (this.singleplayer) {
             return WinResult.no();
         }
 
