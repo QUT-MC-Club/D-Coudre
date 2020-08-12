@@ -130,7 +130,9 @@ public class DeACoudreActive {
     }
 
     private boolean onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
-        if (source == DamageSource.FALL) {
+        if (player == null) return true;
+        double playerY = player.getPos().y;
+        if (source == DamageSource.FALL && playerY < this.config.mapConfig.height + 1) {
 
             if (this.lifeMap.get(PlayerRef.of(player)) < 2) this.eliminatePlayer(player);
             else {
@@ -142,10 +144,8 @@ public class DeACoudreActive {
                 this.broadcastMessage(new LiteralText(String.format("%s lost a life! %s life/lives left!", message.getString(), this.lifeMap.get(PlayerRef.of(player)))).formatted(Formatting.YELLOW));
             }
         } else if (source == DamageSource.OUT_OF_WORLD) {
-            BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
-            Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
-            player.setVelocity(new Vec3d(0,0,0));
-            player.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
+            BlockPos blockPos = this.gameMap.getSpawn();
+            player.teleport(this.gameWorld.getWorld(), blockPos.getX(), 10, blockPos.getZ(), 180F, 0F);
         }
         return true;
     }
@@ -222,7 +222,6 @@ public class DeACoudreActive {
                 this.broadcastMessage(new LiteralText("Next player is " + playerEntity.getName().getString()));
                 this.scoreboard.tick();
             }
-            playerEntity.setVelocity(new Vec3d(0,0,0));
             playerEntity.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
             Text message = playerEntity.getDisplayName().shallowCopy();
 

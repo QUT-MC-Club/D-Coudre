@@ -34,6 +34,5 @@ public class DeACoudreSpawnLogic {
 
         BlockPos pos = new BlockPos(0,3,0);
         player.teleport(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0.0F, 0.0F);
-        player.setVelocity(new Vec3d(0,0,0));
     }
 }
