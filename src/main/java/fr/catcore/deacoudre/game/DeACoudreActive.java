@@ -3,6 +3,7 @@ package fr.catcore.deacoudre.game;
 import fr.catcore.deacoudre.DeACoudre;
 import fr.catcore.deacoudre.game.DeACoudreActive.WinResult;
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
+import net.minecraft.util.ActionResult;
 import xyz.nucleoid.plasmid.game.GameWorld;
 import xyz.nucleoid.plasmid.game.event.*;
 import xyz.nucleoid.plasmid.game.player.JoinResult;
@@ -152,9 +153,9 @@ public class DeACoudreActive {
         return true;
     }
 
-    private boolean onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
+    private ActionResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
         this.eliminatePlayer(player);
-        return true;
+        return ActionResult.FAIL;
     }
 
     private void spawnParticipant(ServerPlayerEntity player) {

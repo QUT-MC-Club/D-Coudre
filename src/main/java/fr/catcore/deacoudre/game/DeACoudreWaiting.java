@@ -3,6 +3,7 @@ package fr.catcore.deacoudre.game;
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
 import fr.catcore.deacoudre.game.map.DeACoudreMapGenerator;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
 import xyz.nucleoid.plasmid.game.GameWorld;
 import xyz.nucleoid.plasmid.game.StartResult;
@@ -89,8 +90,8 @@ public class DeACoudreWaiting {
         this.spawnLogic.spawnPlayer(player, GameMode.ADVENTURE);
     }
 
-    private boolean onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
+    private ActionResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
         this.spawnLogic.spawnPlayer(player, GameMode.ADVENTURE);
-        return true;
+        return ActionResult.FAIL;
     }
 }
