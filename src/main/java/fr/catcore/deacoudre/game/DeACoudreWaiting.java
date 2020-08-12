@@ -40,7 +40,7 @@ public class DeACoudreWaiting {
 
         return generator.create().thenAccept(map -> {
             BubbleWorldConfig worldConfig = new BubbleWorldConfig()
-                    .setGenerator(map.asGenerator())
+                    .setGenerator(map.asGenerator(minecraftServer))
                     .setDefaultGameMode(GameMode.SPECTATOR)
                     .setSpawnPos(new Vec3d(0,3,0));
 
