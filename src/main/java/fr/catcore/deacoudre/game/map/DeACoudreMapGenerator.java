@@ -19,7 +19,7 @@ public class DeACoudreMapGenerator {
     }
 
     public CompletableFuture<DeACoudreMap> create() {
-        return CompletableFuture.supplyAsync(this::build, Util.getServerWorkerExecutor());
+        return CompletableFuture.supplyAsync(this::build, Util.getMainWorkerExecutor());
     }
 
     private DeACoudreMap build() {

@@ -1,6 +1,7 @@
 package fr.catcore.deacoudre.game;
 
 import fr.catcore.deacoudre.DeACoudre;
+import fr.catcore.deacoudre.game.DeACoudreActive.WinResult;
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
 import xyz.nucleoid.plasmid.game.GameWorld;
 import xyz.nucleoid.plasmid.game.event.*;
@@ -89,12 +90,12 @@ public class DeACoudreActive {
         DeACoudreActive active = new DeACoudreActive(gameWorld, map, config, participants);
 
         gameWorld.newGame(builder -> {
-            builder.setRule(GameRule.ALLOW_CRAFTING, RuleResult.DENY);
-            builder.setRule(GameRule.ALLOW_PORTALS, RuleResult.DENY);
-            builder.setRule(GameRule.ALLOW_PVP, RuleResult.DENY);
+            builder.setRule(GameRule.CRAFTING, RuleResult.DENY);
+            builder.setRule(GameRule.PORTALS, RuleResult.DENY);
+            builder.setRule(GameRule.PVP, RuleResult.DENY);
             builder.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
             builder.setRule(GameRule.FALL_DAMAGE, RuleResult.ALLOW);
-            builder.setRule(GameRule.ENABLE_HUNGER, RuleResult.DENY);
+            builder.setRule(GameRule.HUNGER, RuleResult.DENY);
 
             builder.on(GameOpenListener.EVENT, active::onOpen);
             builder.on(GameCloseListener.EVENT, active::onClose);
@@ -305,7 +306,7 @@ public class DeACoudreActive {
 
     private void tickClosing(GameWorld game, long time) {
         if (time >= this.closeTime) {
-            game.closeWorld();
+            game.close();
         }
     }
 
