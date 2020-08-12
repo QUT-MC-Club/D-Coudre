@@ -101,6 +101,7 @@ public class DeACoudreActive {
 
             builder.on(OfferPlayerListener.EVENT, player -> JoinResult.ok());
             builder.on(PlayerAddListener.EVENT, active::addPlayer);
+            builder.on(PlayerRemoveListener.EVENT, active::eliminatePlayer);
 
             builder.on(GameTickListener.EVENT, active::tick);
 
@@ -165,10 +166,16 @@ public class DeACoudreActive {
 
         this.spawnSpectator(player);
         PlayerRef eliminated = PlayerRef.of(player);
-        this.nextJumper = nextPlayer(true);
+        for (PlayerRef playerRef : this.participants) {
+            if (playerRef == eliminated) {
+                eliminated = playerRef;
+                break;
+            }
+        }
         this.participants.remove(eliminated);
         this.lifeMap.remove(eliminated);
         this.blockStateMap.remove(eliminated);
+        this.nextJumper = nextPlayer(true);
     }
 
     private void broadcastMessage(Text message) {
@@ -188,6 +195,10 @@ public class DeACoudreActive {
     }
 
     private void tick() {
+        if (this.nextJumper == null) {
+            this.nextJumper = nextPlayer(true);
+            return;
+        }
         this.ticks++;
         this.updateExperienceBar();
         this.scoreboard.tick();
@@ -328,6 +339,7 @@ public class DeACoudreActive {
         }
         if (next == this.nextJumper && !this.ignoreWinState) {
             DeACoudre.LOGGER.warn("next is equals to nextJumper, something might be wrong!");
+            return null;
         }
         return next;
     }
