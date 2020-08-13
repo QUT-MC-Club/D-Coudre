@@ -5,6 +5,8 @@ import fr.catcore.deacoudre.game.map.DeACoudreMapGenerator;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
+import xyz.nucleoid.plasmid.game.ConfiguredGame;
+import xyz.nucleoid.plasmid.game.GameOpenContext;
 import xyz.nucleoid.plasmid.game.GameWorld;
 import xyz.nucleoid.plasmid.game.StartResult;
 import xyz.nucleoid.plasmid.game.config.PlayerConfig;
@@ -36,18 +38,18 @@ public class DeACoudreWaiting {
         this.spawnLogic = new DeACoudreSpawnLogic(gameWorld, map);
     }
 
-    public static CompletableFuture<Void> open(MinecraftServer minecraftServer, DeACoudreConfig config) {
-        DeACoudreMapGenerator generator = new DeACoudreMapGenerator(config.mapConfig);
+    public static CompletableFuture<Void> open(GameOpenContext<DeACoudreConfig> gameOpenContext) {
+        DeACoudreMapGenerator generator = new DeACoudreMapGenerator(gameOpenContext.getConfig().mapConfig);
 
         return generator.create().thenAccept(map -> {
             BubbleWorldConfig worldConfig = new BubbleWorldConfig()
-                    .setGenerator(map.asGenerator(minecraftServer))
+                    .setGenerator(map.asGenerator(gameOpenContext.getServer()))
                     .setDefaultGameMode(GameMode.SPECTATOR)
                     .setSpawnPos(new Vec3d(0,3,0));
 
-            GameWorld gameWorld = GameWorld.open(minecraftServer, worldConfig);
+            GameWorld gameWorld = gameOpenContext.openWorld(worldConfig);
 
-            DeACoudreWaiting waiting = new DeACoudreWaiting(gameWorld, map, config);
+            DeACoudreWaiting waiting = new DeACoudreWaiting(gameWorld, map, gameOpenContext.getConfig());
 
             gameWorld.openGame(builder -> {
                 builder.setRule(GameRule.CRAFTING, RuleResult.DENY);
