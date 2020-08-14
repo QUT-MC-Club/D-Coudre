@@ -132,7 +132,7 @@ public class DeACoudreActive {
 
     private boolean onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         if (player == null) return true;
-        if (!this.singleplayer && PlayerRef.of(player) != this.nextJumper) return true;
+        if (!this.singleplayer && !PlayerRef.of(player).equals(this.nextJumper)) return true;
 
         Vec3d playerPos = player.getPos();
         BlockBounds poolBounds = this.gameMap.getTemplate().getFirstRegion("pool");
@@ -174,7 +174,7 @@ public class DeACoudreActive {
         this.spawnSpectator(player);
         PlayerRef eliminated = PlayerRef.of(player);
         for (PlayerRef playerRef : this.participants) {
-            if (playerRef == eliminated) {
+            if (playerRef.equals(eliminated)) {
                 eliminated = playerRef;
                 break;
             }
