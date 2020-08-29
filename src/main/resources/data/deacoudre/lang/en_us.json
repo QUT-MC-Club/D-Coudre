@@ -1,0 +1,16 @@
+{
+  "text.dac.error.next_jumper.null": "nextJumper is null! Attempting to get the next player.",
+  "text.dac.error.next_jumper.try": "Next player is %s.",
+  "text.dac.game.turn": "It's %s's turn!",
+  "text.dac.game.dac": "%1$s made a dé à coudre! They are winning an additional life! %2$s lives left!",
+  "text.dac.game.slow": "%1$s was to slow to jump and lost a life (%2$s)",
+  "text.dac.game.won": "%s has won the game!",
+  "text.dac.game.won.nobody": "The game ended, but nobody won!",
+  "text.dac.game.left": "%s has left the DAC game!",
+  "text.dac.game.eliminated": "%s has been eliminated!",
+  "text.dac.game.lose_life": "%s lost a life! ",
+  "text.dac.game.life_left": "a life left!",
+  "text.dac.game.lives_left": "%s lives left!",
+  "text.dac.game.start_singular": "All player start with a life.",
+  "text.dac.game.start_plural": "All player start with %s lives."
+}

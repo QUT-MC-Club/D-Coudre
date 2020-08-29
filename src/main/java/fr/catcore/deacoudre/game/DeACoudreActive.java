@@ -7,10 +7,13 @@ import net.minecraft.block.Blocks;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.LiteralText;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
@@ -101,7 +104,7 @@ public class DeACoudreActive {
 
             builder.on(OfferPlayerListener.EVENT, player -> JoinResult.ok());
             builder.on(PlayerAddListener.EVENT, active::addPlayer);
-            builder.on(PlayerRemoveListener.EVENT, active::eliminatePlayer);
+            builder.on(PlayerRemoveListener.EVENT, active::removePlayer);
 
             builder.on(GameTickListener.EVENT, active::tick);
 
@@ -115,7 +118,13 @@ public class DeACoudreActive {
         for (PlayerRef ref : this.participants) {
             ref.ifOnline(world, this::spawnParticipant);
         }
-        this.broadcastMessage(new LiteralText(String.format("All player start with %s life/lives.", this.config.life)).formatted(Formatting.GREEN));
+        MutableText text;
+        if (this.config.life > 1) {
+            text = new TranslatableText("text.dac.game.start_plural", this.config.life);
+        } else {
+            text = new TranslatableText("text.dac.game.start_singular");
+        }
+        this.broadcastMessage(text.formatted(Formatting.GREEN));
     }
 
     private void onClose() {
@@ -142,9 +151,14 @@ public class DeACoudreActive {
                 this.spawnParticipant(player);
                 this.lifeMap.replace(PlayerRef.of(player), this.lifeMap.get(PlayerRef.of(player)) - 1);
                 this.nextJumper = this.nextPlayer(true);
-                Text message = player.getDisplayName().shallowCopy();
+                MutableText message = new TranslatableText("text.dac.game.lose_life", player.getDisplayName());
+                if (this.lifeMap.get(PlayerRef.of(player)) > 1) {
+                    message = message.append(new TranslatableText("text.dac.game.lives_left", this.lifeMap.get(PlayerRef.of(player))));
+                } else {
+                    message = message.append(new TranslatableText("text.dac.game.life_left"));
+                }
 
-                this.broadcastMessage(new LiteralText(String.format("%s lost a life! %s life/lives left!", message.getString(), this.lifeMap.get(PlayerRef.of(player)))).formatted(Formatting.YELLOW));
+                this.broadcastMessage(message.formatted(Formatting.YELLOW));
             }
         } else if (source == DamageSource.OUT_OF_WORLD) {
             BlockPos blockPos = this.gameMap.getSpawn();
@@ -162,8 +176,26 @@ public class DeACoudreActive {
         this.spawnLogic.spawnPlayer(player, GameMode.ADVENTURE);
     }
 
+    private void removePlayer(ServerPlayerEntity player) {
+        PlayerRef leaving = PlayerRef.of(player);
+        boolean contains = false;
+        for (PlayerRef playerRef : this.participants) {
+            if (playerRef.equals(leaving)) {
+                contains = true;
+                leaving = playerRef;
+                break;
+            }
+        }
+        if (leaving == this.nextJumper) this.nextPlayer(true);
+        if (contains) this.eliminatePlayer(player);
+
+        Text message = new TranslatableText("text.dac.game.left", player.getDisplayName());
+        this.broadcastMessage(message);
+    }
+
     private void eliminatePlayer(ServerPlayerEntity player) {
-        Text message = player.getDisplayName().shallowCopy().append(" has been eliminated!")
+
+        Text message = new TranslatableText("text.dac.game.eliminated", player.getDisplayName())
                 .formatted(Formatting.RED);
 
         this.broadcastMessage(message);
@@ -218,16 +250,17 @@ public class DeACoudreActive {
             BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingPlatform");
             Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
             if (playerEntity == null || this.nextJumper == null) {
-                this.broadcastMessage(new LiteralText("nextJumper is null! Attempting to get the next player.").formatted(Formatting.RED));
+                this.broadcastMessage(new TranslatableText("text.dac.error.next_jumper.null").formatted(Formatting.RED));
                 this.nextJumper = nextPlayer(false);
                 playerEntity = this.nextJumper.getEntity(this.gameWorld.getWorld());
-                this.broadcastMessage(new LiteralText("Next player is " + playerEntity.getName().getString()));
+                this.broadcastMessage(new TranslatableText("text.dac.error.next_jumper.try", playerEntity.getName()));
                 this.scoreboard.tick();
             }
             playerEntity.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
+            playerEntity.playSound(SoundEvents.BLOCK_BELL_USE, SoundCategory.MASTER, 1.0F, 1.0F);
             Text message = playerEntity.getDisplayName().shallowCopy();
 
-            this.broadcastMessage(new LiteralText(String.format("It's %s's turn!", message.getString())).formatted(Formatting.BLUE));
+            this.broadcastMessage(new TranslatableText("text.dac.game.turn", message.getString()).formatted(Formatting.BLUE));
             this.turnStarting = false;
         }
         if (playerEntity == null || this.nextJumper == null) {
@@ -235,7 +268,7 @@ public class DeACoudreActive {
                 DeACoudre.LOGGER.warn("playerEntity is null!");
             }
             if (this.nextJumper == null) {
-                DeACoudre.LOGGER.warn("nextJumper is null! Attempting to get the next player.");
+                DeACoudre.LOGGER.warn(new TranslatableText("text.dac.error.next_jumper.null"));
                 this.nextJumper = nextPlayer(true);
             }
         } else if (this.gameWorld.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
@@ -250,7 +283,7 @@ public class DeACoudreActive {
                 this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) + 1);
                 Text message = playerEntity.getDisplayName().shallowCopy();
 
-                this.broadcastMessage(new LiteralText(String.format("%s made a dé à coudre! They are winning an additional life! %s lives left!", message.getString(), this.lifeMap.get(this.nextJumper))).formatted(Formatting.AQUA));
+                this.broadcastMessage(new TranslatableText("text.dac.game.dac", message.getString(), this.lifeMap.get(this.nextJumper)).formatted(Formatting.AQUA));
                 coudre = true;
             } else {
                 this.gameWorld.getWorld().setBlockState(pos, this.blockStateMap.get(this.nextJumper));
@@ -269,7 +302,7 @@ public class DeACoudreActive {
         }
         BlockBounds jumpingArea = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
         if (this.seconds % 20 == 0 && !this.turnStarting && this.nextJumper != null && playerEntity != null && jumpingArea.contains(playerEntity.getBlockPos())) {
-            this.broadcastMessage(new LiteralText(String.format("%s was to slow to jump and lost a life (%s)", playerEntity.getName().getString(), this.lifeMap.get(this.nextJumper) - 1)).formatted(Formatting.YELLOW));
+            this.broadcastMessage(new TranslatableText("text.dac.game.slow", playerEntity.getName().getString(), this.lifeMap.get(this.nextJumper) - 1).formatted(Formatting.YELLOW));
             this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) - 1);
             this.nextJumper = nextPlayer(true);
             spawnParticipant(playerEntity);
@@ -298,9 +331,9 @@ public class DeACoudreActive {
 
         Text message;
         if (winningPlayer != null) {
-            message = winningPlayer.getDisplayName().shallowCopy().append(" has won the game!").formatted(Formatting.GOLD);
+            message = new TranslatableText("text.dac.game.won", winningPlayer.getDisplayName()).formatted(Formatting.GOLD);
         } else {
-            message = new LiteralText("The game ended, but nobody won!").formatted(Formatting.GOLD);
+            message = new TranslatableText("text.dac.game.won.nobody").formatted(Formatting.GOLD);
         }
 
         this.broadcastMessage(message);
