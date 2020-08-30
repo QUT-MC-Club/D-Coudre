@@ -12,5 +12,14 @@
   "text.dac.game.life_left": "a life left!",
   "text.dac.game.lives_left": "%s lives left!",
   "text.dac.game.start_singular": "All player start with a life.",
-  "text.dac.game.start_plural": "All player start with %s lives."
+  "text.dac.game.start_plural": "All player start with %s lives.",
+
+  "text.game_gui.game_type.deacoudre.deacoudre.title": "Dé à Coudre",
+  "text.game_gui.game_type.deacoudre.deacoudre.desc.1": "Always jump into water! Each time you success, a block",
+  "text.game_gui.game_type.deacoudre.deacoudre.desc.2": "is being placed where you jumped. Get additional lives by",
+  "text.game_gui.game_type.deacoudre.deacoudre.desc.3": "jumping into 1x1 water block.",
+
+  "text.game_gui.game_config.deacoudre.circle_deacoudre.title": "Circle shaped map",
+  "text.game_gui.game_config.deacoudre.donut_deacoudre.title": "Donut shaped map",
+  "text.game_gui.game_config.deacoudre.square_deacoudre.title": "Square shaped Map"
 }
