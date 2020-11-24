@@ -10,11 +10,10 @@ import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import xyz.nucleoid.plasmid.util.PlayerRef;
+import xyz.nucleoid.plasmid.widget.GlobalWidgets;
 import xyz.nucleoid.plasmid.widget.SidebarWidget;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 public class DeACoudreScoreboard implements AutoCloseable {
@@ -33,11 +32,11 @@ public class DeACoudreScoreboard implements AutoCloseable {
         this.lifeObjective = lifeObjective;
     }
 
-    public static DeACoudreScoreboard create(DeACoudreActive game) {
-        ServerScoreboard scoreboard = game.gameWorld.getWorld().getServer().getScoreboard();
+    public static DeACoudreScoreboard create(DeACoudreActive game, GlobalWidgets widgets) {
+        ServerScoreboard scoreboard = game.gameSpace.getWorld().getServer().getScoreboard();
 
         Text title = new LiteralText("Dé à Coudre").formatted(Formatting.BLUE, Formatting.BOLD);
-        SidebarWidget sidebar = SidebarWidget.open(title, game.gameWorld.getPlayerSet());
+        SidebarWidget sidebar = widgets.addSidebar(title);
 
         ScoreboardObjective scoreboardObjective2 = new ScoreboardObjective(
                 scoreboard, "de_a_coudre_life",
@@ -60,43 +59,42 @@ public class DeACoudreScoreboard implements AutoCloseable {
     }
 
     private void rerender() {
-        List<String> lines = new ArrayList<>(10);
+        this.sidebar.set(content -> {
+            long seconds = (this.ticks / 20) % 60;
+            long minutes = this.ticks / (20 * 60);
 
-        long seconds = (this.ticks / 20) % 60;
-        long minutes = this.ticks / (20 * 60);
+            content.writeLine(String.format("%sTime: %s%02d:%02d", Formatting.RED.toString() + Formatting.BOLD, Formatting.RESET, minutes, seconds));
 
-        lines.add(String.format("%sTime: %s%02d:%02d", Formatting.RED.toString() + Formatting.BOLD, Formatting.RESET, minutes, seconds));
+            long playersAlive = this.game.participants().size();
+            content.writeLine(Formatting.BLUE.toString() + playersAlive + " players alive");
+            content.writeLine("");
 
-        long playersAlive = this.game.participants().size();
-        lines.add(Formatting.BLUE.toString() + playersAlive + " players alive");
-        lines.add("");
+            PlayerRef currentJumper = this.game.nextJumper;
+            PlayerRef nextJumper = this.game.nextPlayer(false);
 
-        PlayerRef currentJumper = this.game.nextJumper;
-        PlayerRef nextJumper = this.game.nextPlayer(false);
-
-        if (currentJumper == null) {
-            DeACoudre.LOGGER.warn("currentJumper is null!");
-        } else if (nextJumper == null) {
-            DeACoudre.LOGGER.warn("nextJumper is null!");
-        } else {
-            ServerPlayerEntity currentPlayer = currentJumper.getEntity(this.game.gameWorld.getWorld());
-            ServerPlayerEntity nextPlayer = nextJumper.getEntity(this.game.gameWorld.getWorld());
-            if (currentPlayer != null) {
-                lines.add("Current Jumper: " + currentPlayer.getName().getString());
-                lines.add("");
+            if (currentJumper == null) {
+                DeACoudre.LOGGER.warn("currentJumper is null!");
+            } else if (nextJumper == null) {
+                DeACoudre.LOGGER.warn("nextJumper is null!");
+            } else {
+                ServerPlayerEntity currentPlayer = currentJumper.getEntity(this.game.gameSpace.getWorld());
+                ServerPlayerEntity nextPlayer = nextJumper.getEntity(this.game.gameSpace.getWorld());
+                if (currentPlayer != null) {
+                    content.writeLine("Current Jumper: " + currentPlayer.getName().getString());
+                    content.writeLine("");
+                }
+                if (nextPlayer != null) {
+                    content.writeLine("Next Jumper: " + nextPlayer.getName().getString());
+                    content.writeLine("");
+                }
             }
-            if (nextPlayer != null) {
-                lines.add("Next Jumper: " + nextPlayer.getName().getString());
-                lines.add("");
-            }
-        }
-        this.sidebar.set(lines.toArray(new String[0]));
+        });
 
-        ServerScoreboard scoreboard = this.game.gameWorld.getWorld().getServer().getScoreboard();
+        ServerScoreboard scoreboard = this.game.gameSpace.getWorld().getServer().getScoreboard();
         clear(scoreboard, lifeObjective);
         for (Map.Entry<PlayerRef, Integer> entry : this.game.lifes().entrySet()) {
             if (entry.getKey() == null) continue;
-            ServerPlayerEntity playerEntity = entry.getKey().getEntity(this.game.gameWorld.getWorld());
+            ServerPlayerEntity playerEntity = entry.getKey().getEntity(this.game.gameSpace.getWorld());
             if (playerEntity != null) {
                 scoreboard.getPlayerScore(playerEntity.getName().getString(), lifeObjective)
                     .setScore(entry.getValue());
@@ -115,7 +113,7 @@ public class DeACoudreScoreboard implements AutoCloseable {
     public void close() {
         this.sidebar.close();
 
-        ServerScoreboard scoreboard = this.game.gameWorld.getWorld().getServer().getScoreboard();
+        ServerScoreboard scoreboard = this.game.gameSpace.getWorld().getServer().getScoreboard();
         scoreboard.removeObjective(this.lifeObjective);
     }
 }

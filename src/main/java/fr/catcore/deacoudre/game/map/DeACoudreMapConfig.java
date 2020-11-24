@@ -2,10 +2,10 @@ package fr.catcore.deacoudre.game.map;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import xyz.nucleoid.plasmid.game.map.template.MapTemplate;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
+import xyz.nucleoid.plasmid.map.template.MapTemplate;
 
 public class DeACoudreMapConfig {
 

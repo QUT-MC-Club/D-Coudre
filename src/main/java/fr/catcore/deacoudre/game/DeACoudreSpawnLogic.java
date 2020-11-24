@@ -1,21 +1,20 @@
 package fr.catcore.deacoudre.game;
 
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
-import net.minecraft.util.math.Vec3d;
-import xyz.nucleoid.plasmid.game.GameWorld;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.GameMode;
+import xyz.nucleoid.plasmid.game.GameSpace;
 
 public class DeACoudreSpawnLogic {
-    private final GameWorld gameWorld;
+    private final GameSpace gameSpace;
     private final DeACoudreMap map;
 
-    public DeACoudreSpawnLogic(GameWorld gameWorld, DeACoudreMap map) {
-        this.gameWorld = gameWorld;
+    public DeACoudreSpawnLogic(GameSpace gameSpace, DeACoudreMap map) {
+        this.gameSpace = gameSpace;
         this.map = map;
     }
 
@@ -30,7 +29,7 @@ public class DeACoudreSpawnLogic {
                 false
         ));
 
-        ServerWorld world = this.gameWorld.getWorld();
+        ServerWorld world = this.gameSpace.getWorld();
 
         BlockPos pos = new BlockPos(0,3,0);
         player.teleport(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0.0F, 0.0F);
