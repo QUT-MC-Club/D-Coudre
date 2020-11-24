@@ -111,8 +111,6 @@ public class DeACoudreScoreboard implements AutoCloseable {
 
     @Override
     public void close() {
-        this.sidebar.close();
-
         ServerScoreboard scoreboard = this.game.gameSpace.getWorld().getServer().getScoreboard();
         scoreboard.removeObjective(this.lifeObjective);
     }

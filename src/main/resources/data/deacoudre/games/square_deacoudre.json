@@ -1,5 +1,6 @@
 {
   "type": "deacoudre:deacoudre",
+  "name": "Square Dé à Coudre",
   "map": {
     "radius": 7,
     "height": 50,

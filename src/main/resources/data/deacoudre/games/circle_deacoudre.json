@@ -1,5 +1,6 @@
 {
   "type": "deacoudre:deacoudre",
+  "name": "Circle Dé à Coudre",
   "map": {
     "radius": 10,
     "height": 100,
