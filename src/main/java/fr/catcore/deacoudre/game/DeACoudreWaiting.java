@@ -7,64 +7,62 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
+import xyz.nucleoid.fantasy.BubbleWorldConfig;
 import xyz.nucleoid.plasmid.game.GameOpenContext;
+import xyz.nucleoid.plasmid.game.GameOpenProcedure;
+import xyz.nucleoid.plasmid.game.GameSpace;
 import xyz.nucleoid.plasmid.game.GameWaitingLobby;
-import xyz.nucleoid.plasmid.game.GameWorld;
 import xyz.nucleoid.plasmid.game.StartResult;
 import xyz.nucleoid.plasmid.game.event.PlayerAddListener;
 import xyz.nucleoid.plasmid.game.event.PlayerDeathListener;
 import xyz.nucleoid.plasmid.game.event.RequestStartListener;
 import xyz.nucleoid.plasmid.game.rule.GameRule;
 import xyz.nucleoid.plasmid.game.rule.RuleResult;
-import xyz.nucleoid.plasmid.world.bubble.BubbleWorldConfig;
-
-import java.util.concurrent.CompletableFuture;
 
 public class DeACoudreWaiting {
-    private final GameWorld gameWorld;
+    private final GameSpace gameSpace;
     private final DeACoudreMap map;
     private final DeACoudreConfig config;
     private final DeACoudreSpawnLogic spawnLogic;
 
-    private DeACoudreWaiting(GameWorld gameWorld, DeACoudreMap map, DeACoudreConfig config) {
-        this.gameWorld = gameWorld;
+    private DeACoudreWaiting(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config) {
+        this.gameSpace = gameSpace;
         this.map = map;
         this.config = config;
 
-        this.spawnLogic = new DeACoudreSpawnLogic(gameWorld, map);
+        this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
     }
 
-    public static CompletableFuture<GameWorld> open(GameOpenContext<DeACoudreConfig> gameOpenContext) {
-        DeACoudreMapGenerator generator = new DeACoudreMapGenerator(gameOpenContext.getConfig().mapConfig);
+    public static GameOpenProcedure open(GameOpenContext<DeACoudreConfig> context) {
+        DeACoudreMapGenerator generator = new DeACoudreMapGenerator(context.getConfig().mapConfig);
+        DeACoudreMap map = generator.build();
 
-        return generator.create().thenCompose(map -> {
-            BubbleWorldConfig worldConfig = new BubbleWorldConfig()
-                    .setGenerator(map.asGenerator(gameOpenContext.getServer()))
-                    .setDefaultGameMode(GameMode.SPECTATOR)
-                    .setSpawnAt(new Vec3d(0,3,0));
+        BubbleWorldConfig worldConfig = new BubbleWorldConfig()
+                .setGenerator(map.asGenerator(context.getServer()))
+                .setDefaultGameMode(GameMode.SPECTATOR)
+                .setSpawnAt(new Vec3d(0,3,0));
 
-            return gameOpenContext.openWorld(worldConfig).thenApply(gameWorld -> {
-                DeACoudreWaiting waiting = new DeACoudreWaiting(gameWorld, map, gameOpenContext.getConfig());
+        return context.createOpenProcedure(worldConfig, game -> {
+            DeACoudreWaiting waiting = new DeACoudreWaiting(game.getSpace(), map, context.getConfig());
 
-                return GameWaitingLobby.open(gameWorld, gameOpenContext.getConfig().playerConfig, builder -> {
-                    builder.setRule(GameRule.CRAFTING, RuleResult.DENY);
-                    builder.setRule(GameRule.PORTALS, RuleResult.DENY);
-                    builder.setRule(GameRule.PVP, RuleResult.DENY);
-                    builder.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
-                    builder.setRule(GameRule.HUNGER, RuleResult.DENY);
-                    builder.setRule(GameRule.FALL_DAMAGE, RuleResult.DENY);
+            GameWaitingLobby.applyTo(game, context.getConfig().playerConfig);
 
-                    builder.on(RequestStartListener.EVENT, waiting::requestStart);
+            game.setRule(GameRule.CRAFTING, RuleResult.DENY);
+            game.setRule(GameRule.PORTALS, RuleResult.DENY);
+            game.setRule(GameRule.PVP, RuleResult.DENY);
+            game.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
+            game.setRule(GameRule.HUNGER, RuleResult.DENY);
+            game.setRule(GameRule.FALL_DAMAGE, RuleResult.DENY);
 
-                    builder.on(PlayerAddListener.EVENT, waiting::addPlayer);
-                    builder.on(PlayerDeathListener.EVENT, waiting::onPlayerDeath);
-                });
-            });
+            game.on(RequestStartListener.EVENT, waiting::requestStart);
+
+            game.on(PlayerAddListener.EVENT, waiting::addPlayer);
+            game.on(PlayerDeathListener.EVENT, waiting::onPlayerDeath);
         });
     }
 
     private StartResult requestStart() {
-        DeACoudreActive.open(this.gameWorld, this.map, this.config);
+        DeACoudreActive.open(this.gameSpace, this.map, this.config);
         return StartResult.OK;
     }
 

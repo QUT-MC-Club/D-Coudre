@@ -1,12 +1,9 @@
 package fr.catcore.deacoudre.game.map;
 
-import xyz.nucleoid.plasmid.game.map.template.MapTemplate;
-import xyz.nucleoid.plasmid.util.BlockBounds;
 import net.minecraft.block.Blocks;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
-
-import java.util.concurrent.CompletableFuture;
+import xyz.nucleoid.plasmid.map.template.MapTemplate;
+import xyz.nucleoid.plasmid.util.BlockBounds;
 
 public class DeACoudreMapGenerator {
 
@@ -18,11 +15,7 @@ public class DeACoudreMapGenerator {
         this.shape = DeACoudreMapConfig.MapShape.valueOf(config.shape);
     }
 
-    public CompletableFuture<DeACoudreMap> create() {
-        return CompletableFuture.supplyAsync(this::build, Util.getMainWorkerExecutor());
-    }
-
-    private DeACoudreMap build() {
+    public DeACoudreMap build() {
         MapTemplate template = MapTemplate.createEmpty();
         DeACoudreMap map = new DeACoudreMap(template, this.config);
 
@@ -71,7 +64,7 @@ public class DeACoudreMapGenerator {
                 new BlockPos(-config.radius - 1, 0, 4),
                 new BlockPos(config.radius + 1, 4, 6 + 2*config.radius)
         );
-        builder.addRegion("pool", bounds);
+        builder.getMetadata().addRegion("pool", bounds);
     }
 
     private void buildJumpingPlatform(MapTemplate builder) {
@@ -123,7 +116,7 @@ public class DeACoudreMapGenerator {
                 new BlockPos(-2, config.height, minZ),
                 new BlockPos(2, config.height + 2, minZ + 4)
         );
-        builder.addRegion("jumpingPlatform", bounds);
-        builder.addRegion("jumpingArea", bounds1);
+        builder.getMetadata().addRegion("jumpingPlatform", bounds);
+        builder.getMetadata().addRegion("jumpingArea", bounds1);
     }
 }

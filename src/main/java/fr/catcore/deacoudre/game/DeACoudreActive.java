@@ -10,7 +10,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
@@ -19,22 +18,37 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
-import xyz.nucleoid.plasmid.game.GameWorld;
-import xyz.nucleoid.plasmid.game.event.*;
+import xyz.nucleoid.plasmid.game.GameSpace;
+import xyz.nucleoid.plasmid.game.event.GameCloseListener;
+import xyz.nucleoid.plasmid.game.event.GameOpenListener;
+import xyz.nucleoid.plasmid.game.event.GameTickListener;
+import xyz.nucleoid.plasmid.game.event.OfferPlayerListener;
+import xyz.nucleoid.plasmid.game.event.PlayerAddListener;
+import xyz.nucleoid.plasmid.game.event.PlayerDamageListener;
+import xyz.nucleoid.plasmid.game.event.PlayerDeathListener;
+import xyz.nucleoid.plasmid.game.event.PlayerRemoveListener;
 import xyz.nucleoid.plasmid.game.player.JoinResult;
 import xyz.nucleoid.plasmid.game.rule.GameRule;
 import xyz.nucleoid.plasmid.game.rule.RuleResult;
 import xyz.nucleoid.plasmid.util.BlockBounds;
 import xyz.nucleoid.plasmid.util.PlayerRef;
+import xyz.nucleoid.plasmid.widget.GlobalWidgets;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DeACoudreActive {
 
     private final DeACoudreConfig config;
 
-    public final GameWorld gameWorld;
+    public final GameSpace gameSpace;
     private final DeACoudreMap gameMap;
 
     private final Set<PlayerRef> participants;
@@ -56,12 +70,12 @@ public class DeACoudreActive {
     private long ticks;
     private long seconds;
 
-    private DeACoudreActive(GameWorld gameWorld, DeACoudreMap map, DeACoudreConfig config, Set<PlayerRef> participants) {
-        this.gameWorld = gameWorld;
+    private DeACoudreActive(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config, Set<PlayerRef> participants, GlobalWidgets widgets) {
+        this.gameSpace = gameSpace;
         this.config = config;
         this.gameMap = map;
         this.participants = new HashSet<>(participants);
-        this.spawnLogic = new DeACoudreSpawnLogic(gameWorld, map);
+        this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
         this.nextJumper = (PlayerRef) this.participants.toArray()[0];
         this.blockStateMap = new HashMap<>();
         List<BlockState> blockList = Arrays.asList(this.config.getPlayerBlocks());
@@ -73,7 +87,7 @@ public class DeACoudreActive {
         for (PlayerRef playerRef : this.participants) {
             this.lifeMap.put(playerRef, config.life);
         }
-        this.scoreboard = DeACoudreScoreboard.create(this);
+        this.scoreboard = DeACoudreScoreboard.create(this, widgets);
         this.singleplayer = this.participants.size() <= 1;
     }
 
@@ -85,36 +99,38 @@ public class DeACoudreActive {
         return this.lifeMap;
     }
 
-    public static void open(GameWorld gameWorld, DeACoudreMap map, DeACoudreConfig config) {
-        Set<PlayerRef> participants = gameWorld.getPlayers().stream()
-                .map(PlayerRef::of)
-                .collect(Collectors.toSet());
-        DeACoudreActive active = new DeACoudreActive(gameWorld, map, config, participants);
+    public static void open(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config) {
+        gameSpace.openGame(game -> {
+            GlobalWidgets widgets = new GlobalWidgets(game);
 
-        gameWorld.openGame(builder -> {
-            builder.setRule(GameRule.CRAFTING, RuleResult.DENY);
-            builder.setRule(GameRule.PORTALS, RuleResult.DENY);
-            builder.setRule(GameRule.PVP, RuleResult.DENY);
-            builder.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
-            builder.setRule(GameRule.FALL_DAMAGE, RuleResult.ALLOW);
-            builder.setRule(GameRule.HUNGER, RuleResult.DENY);
+            Set<PlayerRef> participants = gameSpace.getPlayers().stream()
+                    .map(PlayerRef::of)
+                    .collect(Collectors.toSet());
+            DeACoudreActive active = new DeACoudreActive(gameSpace, map, config, participants, widgets);
 
-            builder.on(GameOpenListener.EVENT, active::onOpen);
-            builder.on(GameCloseListener.EVENT, active::onClose);
+            game.setRule(GameRule.CRAFTING, RuleResult.DENY);
+            game.setRule(GameRule.PORTALS, RuleResult.DENY);
+            game.setRule(GameRule.PVP, RuleResult.DENY);
+            game.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
+            game.setRule(GameRule.FALL_DAMAGE, RuleResult.ALLOW);
+            game.setRule(GameRule.HUNGER, RuleResult.DENY);
 
-            builder.on(OfferPlayerListener.EVENT, player -> JoinResult.ok());
-            builder.on(PlayerAddListener.EVENT, active::addPlayer);
-            builder.on(PlayerRemoveListener.EVENT, active::removePlayer);
+            game.on(GameOpenListener.EVENT, active::onOpen);
+            game.on(GameCloseListener.EVENT, active::onClose);
 
-            builder.on(GameTickListener.EVENT, active::tick);
+            game.on(OfferPlayerListener.EVENT, player -> JoinResult.ok());
+            game.on(PlayerAddListener.EVENT, active::addPlayer);
+            game.on(PlayerRemoveListener.EVENT, active::removePlayer);
 
-            builder.on(PlayerDamageListener.EVENT, active::onPlayerDamage);
-            builder.on(PlayerDeathListener.EVENT, active::onPlayerDeath);
+            game.on(GameTickListener.EVENT, active::tick);
+
+            game.on(PlayerDamageListener.EVENT, active::onPlayerDamage);
+            game.on(PlayerDeathListener.EVENT, active::onPlayerDeath);
         });
     }
 
     private void onOpen() {
-        ServerWorld world = this.gameWorld.getWorld();
+        ServerWorld world = this.gameSpace.getWorld();
         for (PlayerRef ref : this.participants) {
             ref.ifOnline(world, this::spawnParticipant);
         }
@@ -137,12 +153,12 @@ public class DeACoudreActive {
         }
     }
 
-    private boolean onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
-        if (player == null) return true;
-        if (!this.singleplayer && !PlayerRef.of(player).equals(this.nextJumper)) return true;
+    private ActionResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
+        if (player == null) return ActionResult.FAIL;
+        if (!this.singleplayer && !PlayerRef.of(player).equals(this.nextJumper)) return ActionResult.FAIL;
 
         Vec3d playerPos = player.getPos();
-        BlockBounds poolBounds = this.gameMap.getTemplate().getFirstRegion("pool");
+        BlockBounds poolBounds = this.gameMap.getTemplate().getMetadata().getFirstRegionBounds("pool");
         boolean isInPool = poolBounds.contains((int)playerPos.x, (int)playerPos.y, (int)playerPos.z);
         if (source == DamageSource.FALL && ((playerPos.y < 10 && playerPos.y > 6) || isInPool)) {
 
@@ -162,9 +178,9 @@ public class DeACoudreActive {
             }
         } else if (source == DamageSource.OUT_OF_WORLD) {
             BlockPos blockPos = this.gameMap.getSpawn();
-            player.teleport(this.gameWorld.getWorld(), blockPos.getX(), 10, blockPos.getZ(), 180F, 0F);
+            player.teleport(this.gameSpace.getWorld(), blockPos.getX(), 10, blockPos.getZ(), 180F, 0F);
         }
-        return true;
+        return ActionResult.FAIL;
     }
 
     private ActionResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
@@ -219,11 +235,11 @@ public class DeACoudreActive {
     }
 
     private void broadcastMessage(Text message) {
-        this.gameWorld.getPlayerSet().sendMessage(message);
+        this.gameSpace.getPlayers().sendMessage(message);
     }
 
     private void broadcastSound(SoundEvent sound) {
-        this.gameWorld.getPlayerSet().sendSound(sound);
+        this.gameSpace.getPlayers().sendSound(sound);
     }
 
     private void spawnSpectator(ServerPlayerEntity player) {
@@ -238,25 +254,25 @@ public class DeACoudreActive {
         this.ticks++;
         this.updateExperienceBar();
         this.scoreboard.tick();
-        ServerPlayerEntity playerEntity = this.nextJumper.getEntity(this.gameWorld.getWorld());
-        long time = this.gameWorld.getWorld().getTime();
+        ServerPlayerEntity playerEntity = this.nextJumper.getEntity(this.gameSpace.getWorld());
+        long time = this.gameSpace.getWorld().getTime();
         if (this.closeTime > 0) {
-            this.tickClosing(this.gameWorld, time);
+            this.tickClosing(this.gameSpace, time);
             return;
         }
         if (this.turnStarting && this.participants.contains(this.nextJumper)) {
             this.ticks = 0;
             this.seconds = 0;
-            BlockBounds jumpBoundaries = this.gameMap.getTemplate().getFirstRegion("jumpingPlatform");
+            BlockBounds jumpBoundaries = this.gameMap.getTemplate().getMetadata().getFirstRegionBounds("jumpingPlatform");
             Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
             if (playerEntity == null || this.nextJumper == null) {
                 this.broadcastMessage(new TranslatableText("text.dac.error.next_jumper.null").formatted(Formatting.RED));
                 this.nextJumper = nextPlayer(false);
-                playerEntity = this.nextJumper.getEntity(this.gameWorld.getWorld());
+                playerEntity = this.nextJumper.getEntity(this.gameSpace.getWorld());
                 this.broadcastMessage(new TranslatableText("text.dac.error.next_jumper.try", playerEntity.getName()));
                 this.scoreboard.tick();
             }
-            playerEntity.teleport(this.gameWorld.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
+            playerEntity.teleport(this.gameSpace.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
             playerEntity.playSound(SoundEvents.BLOCK_BELL_USE, SoundCategory.MASTER, 1.0F, 1.0F);
             Text message = playerEntity.getDisplayName().shallowCopy();
 
@@ -271,22 +287,22 @@ public class DeACoudreActive {
                 DeACoudre.LOGGER.warn(new TranslatableText("text.dac.error.next_jumper.null"));
                 this.nextJumper = nextPlayer(true);
             }
-        } else if (this.gameWorld.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
+        } else if (this.gameSpace.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
             BlockPos pos = playerEntity.getBlockPos();
             boolean coudre = false;
-            if (this.gameWorld.getWorld().getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
-                && this.gameWorld.getWorld().getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
-                && this.gameWorld.getWorld().getBlockState(pos.north()) != Blocks.WATER.getDefaultState()
-                && this.gameWorld.getWorld().getBlockState(pos.south()) != Blocks.WATER.getDefaultState()
+            if (this.gameSpace.getWorld().getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
+                && this.gameSpace.getWorld().getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
+                && this.gameSpace.getWorld().getBlockState(pos.north()) != Blocks.WATER.getDefaultState()
+                && this.gameSpace.getWorld().getBlockState(pos.south()) != Blocks.WATER.getDefaultState()
             ) {
-                this.gameWorld.getWorld().setBlockState(pos, Blocks.EMERALD_BLOCK.getDefaultState());
+                this.gameSpace.getWorld().setBlockState(pos, Blocks.EMERALD_BLOCK.getDefaultState());
                 this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) + 1);
                 Text message = playerEntity.getDisplayName().shallowCopy();
 
                 this.broadcastMessage(new TranslatableText("text.dac.game.dac", message.getString(), this.lifeMap.get(this.nextJumper)).formatted(Formatting.AQUA));
                 coudre = true;
             } else {
-                this.gameWorld.getWorld().setBlockState(pos, this.blockStateMap.get(this.nextJumper));
+                this.gameSpace.getWorld().setBlockState(pos, this.blockStateMap.get(this.nextJumper));
             }
             this.nextJumper = nextPlayer(true);
             spawnParticipant(playerEntity);
@@ -300,7 +316,7 @@ public class DeACoudreActive {
         if (this.ticks % 20 == 0 && !this.turnStarting) {
             this.seconds++;
         }
-        BlockBounds jumpingArea = this.gameMap.getTemplate().getFirstRegion("jumpingArea");
+        BlockBounds jumpingArea = this.gameMap.getTemplate().getMetadata().getFirstRegionBounds("jumpingArea");
         if (this.seconds % 20 == 0 && !this.turnStarting && this.nextJumper != null && playerEntity != null && jumpingArea.contains(playerEntity.getBlockPos())) {
             this.broadcastMessage(new TranslatableText("text.dac.game.slow", playerEntity.getName().getString(), this.lifeMap.get(this.nextJumper) - 1).formatted(Formatting.YELLOW));
             this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) - 1);
@@ -320,7 +336,7 @@ public class DeACoudreActive {
     private void updateExperienceBar() {
         for (PlayerRef playerRef : this.participants) {
             if (playerRef == null) continue;
-            ServerPlayerEntity playerEntity = playerRef.getEntity(this.gameWorld.getWorld());
+            ServerPlayerEntity playerEntity = playerRef.getEntity(this.gameSpace.getWorld());
             if (playerEntity == null) continue;
             if (this.lifeMap.containsKey(playerRef)) playerEntity.setExperienceLevel(this.lifeMap.get(playerRef));
         }
@@ -340,7 +356,7 @@ public class DeACoudreActive {
         this.broadcastSound(SoundEvents.ENTITY_VILLAGER_YES);
     }
 
-    private void tickClosing(GameWorld game, long time) {
+    private void tickClosing(GameSpace game, long time) {
         if (time >= this.closeTime) {
             game.close();
         }
@@ -387,7 +403,7 @@ public class DeACoudreActive {
             return WinResult.no();
         }
 
-        ServerWorld world = this.gameWorld.getWorld();
+        ServerWorld world = this.gameSpace.getWorld();
 
         ServerPlayerEntity winningPlayer = null;
 
@@ -403,10 +419,10 @@ public class DeACoudreActive {
             }
         }
 
-        BlockBounds pool = this.gameMap.getTemplate().getFirstRegion("pool");
+        BlockBounds pool = this.gameMap.getTemplate().getMetadata().getFirstRegionBounds("pool");
         boolean isFull = true;
-        for (BlockPos pos : pool.iterate()) {
-            if (this.gameWorld.getWorld().getBlockState(pos) == Blocks.WATER.getDefaultState()) isFull = false;
+        for (BlockPos pos : pool) {
+            if (this.gameSpace.getWorld().getBlockState(pos) == Blocks.WATER.getDefaultState()) isFull = false;
         }
 
         if (isFull) {
