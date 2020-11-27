@@ -1,6 +1,5 @@
 package fr.catcore.deacoudre.game;
 
-import fr.catcore.deacoudre.DeACoudre;
 import net.minecraft.scoreboard.ScoreboardCriterion;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.ScoreboardPlayerScore;
@@ -9,7 +8,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import xyz.nucleoid.plasmid.util.PlayerRef;
 import xyz.nucleoid.plasmid.widget.GlobalWidgets;
 import xyz.nucleoid.plasmid.widget.SidebarWidget;
 
@@ -69,36 +67,26 @@ public class DeACoudreScoreboard implements AutoCloseable {
             content.writeLine(Formatting.BLUE.toString() + playersAlive + " players alive");
             content.writeLine("");
 
-            PlayerRef currentJumper = this.game.nextJumper;
-            PlayerRef nextJumper = this.game.nextPlayer(false);
+            ServerPlayerEntity currentJumper = this.game.nextJumper;
+            ServerPlayerEntity nextJumper = this.game.nextPlayer(false);
 
-            if (currentJumper == null) {
-                DeACoudre.LOGGER.warn("currentJumper is null!");
-            } else if (nextJumper == null) {
-                DeACoudre.LOGGER.warn("nextJumper is null!");
-            } else {
-                ServerPlayerEntity currentPlayer = currentJumper.getEntity(this.game.gameSpace.getWorld());
-                ServerPlayerEntity nextPlayer = nextJumper.getEntity(this.game.gameSpace.getWorld());
-                if (currentPlayer != null) {
-                    content.writeLine("Current Jumper: " + currentPlayer.getName().getString());
-                    content.writeLine("");
-                }
-                if (nextPlayer != null) {
-                    content.writeLine("Next Jumper: " + nextPlayer.getName().getString());
-                    content.writeLine("");
-                }
+            if (currentJumper != null) {
+                content.writeLine("Current Jumper: " + currentJumper.getName().getString());
+                content.writeLine("");
+            }
+            if (nextJumper != null) {
+                content.writeLine("Next Jumper: " + nextJumper.getName().getString());
+                content.writeLine("");
             }
         });
 
         ServerScoreboard scoreboard = this.game.gameSpace.getWorld().getServer().getScoreboard();
         clear(scoreboard, lifeObjective);
-        for (Map.Entry<PlayerRef, Integer> entry : this.game.lifes().entrySet()) {
+        for (Map.Entry<ServerPlayerEntity, Integer> entry : this.game.lifes().entrySet()) {
             if (entry.getKey() == null) continue;
-            ServerPlayerEntity playerEntity = entry.getKey().getEntity(this.game.gameSpace.getWorld());
-            if (playerEntity != null) {
-                scoreboard.getPlayerScore(playerEntity.getName().getString(), lifeObjective)
-                    .setScore(entry.getValue());
-            }
+            ServerPlayerEntity playerEntity = entry.getKey();
+            scoreboard.getPlayerScore(playerEntity.getName().getString(), lifeObjective)
+                .setScore(entry.getValue());
         }
     }
 
