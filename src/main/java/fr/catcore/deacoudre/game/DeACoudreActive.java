@@ -1,5 +1,6 @@
 package fr.catcore.deacoudre.game;
 
+import com.google.common.collect.Sets;
 import fr.catcore.deacoudre.DeACoudre;
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
 import net.minecraft.block.BlockState;
@@ -70,16 +71,13 @@ public class DeACoudreActive {
     private long ticks;
     private long seconds;
 
-    private DeACoudreActive(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config, Set<PlayerRef> participants, GlobalWidgets widgets) {
+    private DeACoudreActive(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config, Set<ServerPlayerEntity> participants, GlobalWidgets widgets) {
         this.gameSpace = gameSpace;
         this.config = config;
         this.gameMap = map;
-        this.participants = new HashSet<>();
-        for (PlayerRef playerRef : participants) {
-            this.participants.add(playerRef.getEntity(this.gameSpace.getWorld()));
-        }
+        this.participants = participants;
         this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
-        this.nextJumper = ((PlayerRef) this.participants.toArray()[0]).getEntity(this.gameSpace.getWorld());
+        this.nextJumper = (ServerPlayerEntity) this.participants.toArray()[0];
         this.blockStateMap = new HashMap<>();
         List<BlockState> blockList = Arrays.asList(this.config.getPlayerBlocks());
         Collections.shuffle(blockList);
@@ -106,9 +104,7 @@ public class DeACoudreActive {
         gameSpace.openGame(game -> {
             GlobalWidgets widgets = new GlobalWidgets(game);
 
-            Set<PlayerRef> participants = gameSpace.getPlayers().stream()
-                    .map(PlayerRef::of)
-                    .collect(Collectors.toSet());
+            Set<ServerPlayerEntity> participants = Sets.newHashSet(gameSpace.getPlayers());
             DeACoudreActive active = new DeACoudreActive(gameSpace, map, config, participants, widgets);
 
             game.setRule(GameRule.CRAFTING, RuleResult.DENY);
@@ -158,7 +154,6 @@ public class DeACoudreActive {
 
     private ActionResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         if (player == null) return ActionResult.FAIL;
-        if (!this.singleplayer && player == this.nextJumper) return ActionResult.FAIL;
 
         Vec3d playerPos = player.getPos();
         BlockBounds poolBounds = this.gameMap.getTemplate().getMetadata().getFirstRegionBounds("pool");
