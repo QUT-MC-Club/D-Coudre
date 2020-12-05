@@ -58,12 +58,8 @@ public class DeACoudreMapGenerator {
         BlockPos.Mutable mutablePosWater = new BlockPos.Mutable();
         BlockPos.Mutable mutablePosBorder = new BlockPos.Mutable();
 
-        shape.generatePool(this.config, builder, mutablePosWater, mutablePosBorder);
+        BlockBounds bounds = shape.generatePool(this.config, builder, mutablePosWater, mutablePosBorder);
 
-        BlockBounds bounds = new BlockBounds(
-                new BlockPos(-config.radius - 1, 0, 4),
-                new BlockPos(config.radius + 1, 4, 6 + 2*config.radius)
-        );
         builder.getMetadata().addRegion("pool", bounds);
     }
 
