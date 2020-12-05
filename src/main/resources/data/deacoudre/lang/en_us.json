@@ -14,6 +14,9 @@
   "text.dac.game.start_singular": "All player start with a life.",
   "text.dac.game.start_plural": "All player start with %s lives.",
 
+  "text.dac.time.1": "1 second left to jump",
+  "text.dac.time.+": "%s seconds left to jump",
+
   "gameType.deacoudre.deacoudre": "Dé à Coudre",
   "gameType.deacoudre.deacoudre.desc.1": "Always jump into water!",
   "gameType.deacoudre.deacoudre.desc.2": "Each time you success,",

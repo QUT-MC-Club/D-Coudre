@@ -97,7 +97,19 @@ public class DeACoudreMapGenerator {
                 new BlockPos(2, config.height + 2, minZ + 4),
                 new BlockPos(2, config.height + 2, minZ + 3),
                 new BlockPos(2, config.height + 2, minZ + 2),
-                new BlockPos(2, config.height + 2, minZ + 1)
+                new BlockPos(2, config.height + 2, minZ + 1),
+
+                new BlockPos(-2, config.height + 3, minZ + 1),
+                new BlockPos(-2, config.height + 3, minZ + 2),
+                new BlockPos(-2, config.height + 3, minZ + 3),
+                new BlockPos(-2, config.height + 3, minZ + 4),
+                new BlockPos(-1, config.height + 3, minZ + 4),
+                new BlockPos(0, config.height + 3, minZ + 4),
+                new BlockPos(1, config.height + 3, minZ + 4),
+                new BlockPos(2, config.height + 3, minZ + 4),
+                new BlockPos(2, config.height + 3, minZ + 3),
+                new BlockPos(2, config.height + 3, minZ + 2),
+                new BlockPos(2, config.height + 3, minZ + 1)
         };
 
         for (BlockPos pos : barrier) {
@@ -105,11 +117,11 @@ public class DeACoudreMapGenerator {
             builder.setBlockState(barrierPos, Blocks.BARRIER.getDefaultState());
         }
         BlockBounds bounds = new BlockBounds(
-                new BlockPos(-1, config.height, minZ),
+                new BlockPos(-1, config.height, minZ-1),
                 new BlockPos(1, config.height, minZ + 3)
         );
         BlockBounds bounds1 = new BlockBounds(
-                new BlockPos(-2, config.height, minZ),
+                new BlockPos(-2, config.height, minZ-1),
                 new BlockPos(2, config.height + 2, minZ + 4)
         );
         builder.getMetadata().addRegion("jumpingPlatform", bounds);

@@ -19,6 +19,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
+import xyz.nucleoid.plasmid.game.GameCloseReason;
 import xyz.nucleoid.plasmid.game.GameSpace;
 import xyz.nucleoid.plasmid.game.event.GameCloseListener;
 import xyz.nucleoid.plasmid.game.event.GameOpenListener;
@@ -246,6 +247,10 @@ public class DeACoudreActive {
             this.tickClosing(this.gameSpace, time);
             return;
         }
+        if (this.nextJumper != null) {
+            if (this.seconds == 19) this.nextJumper.sendMessage(new TranslatableText("text.dac.time.1"), true);
+            else this.nextJumper.sendMessage(new TranslatableText("text.dac.time.+", 20 - this.seconds), true);
+        }
         if (this.turnStarting && this.participants.contains(this.nextJumper)) {
             this.ticks = 0;
             this.seconds = 0;
@@ -342,7 +347,7 @@ public class DeACoudreActive {
 
     private void tickClosing(GameSpace game, long time) {
         if (time >= this.closeTime) {
-            game.close();
+            game.close(GameCloseReason.FINISHED);
         }
     }
 
@@ -386,8 +391,6 @@ public class DeACoudreActive {
         if (this.singleplayer) {
             return WinResult.no();
         }
-
-        ServerWorld world = this.gameSpace.getWorld();
 
         ServerPlayerEntity winningPlayer = null;
 
