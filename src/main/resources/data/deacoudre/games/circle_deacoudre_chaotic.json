@@ -3,7 +3,7 @@
   "name": "Chaotic Circle Dé à Coudre",
   "map": {
     "radius": 10,
-    "height": 60,
+    "height": 100,
     "shape": "circle",
     "spawn_block": {
       "Name": "minecraft:spruce_planks",
