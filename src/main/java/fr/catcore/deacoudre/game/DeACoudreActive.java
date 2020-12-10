@@ -40,7 +40,7 @@ public class DeACoudreActive {
     private final Set<ServerPlayerEntity> participants;
     private final List<ServerPlayerEntity> jumpOrder;
 
-    private final Map<ServerPlayerEntity, BlockState> blockStateMap;
+    private final Map<ServerPlayerEntity, BlockState> playerPalette;
 
     private final DeACoudrePlayerLives lives;
 
@@ -69,20 +69,27 @@ public class DeACoudreActive {
 
         this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
         this.currentJumper = this.jumpOrder.get(0);
-        this.blockStateMap = new Object2ObjectOpenHashMap<>();
-
-        List<BlockState> blockList = Arrays.asList(this.config.getPlayerBlocks());
-        Collections.shuffle(blockList);
-        int blockIndex = 0;
-        for (ServerPlayerEntity player : this.participants) {
-            this.blockStateMap.put(player, blockList.get(blockIndex++ % blockList.size()));
-        }
+        this.playerPalette = this.buildPlayerPalette();
 
         this.lives = new DeACoudrePlayerLives();
         this.lives.addPlayers(this.participants, config.life);
 
         this.scoreboard = DeACoudreScoreboard.create(this, widgets);
         this.singleplayer = this.participants.size() <= 1;
+    }
+
+    private Map<ServerPlayerEntity, BlockState> buildPlayerPalette() {
+        final Map<ServerPlayerEntity, BlockState> playerPalette = new Object2ObjectOpenHashMap<>();
+
+        List<BlockState> availableBlocks = Arrays.asList(this.config.getPlayerBlocks());
+        Collections.shuffle(availableBlocks);
+
+        int blockIndex = 0;
+        for (ServerPlayerEntity player : this.participants) {
+            playerPalette.put(player, availableBlocks.get(blockIndex++ % availableBlocks.size()));
+        }
+
+        return playerPalette;
     }
 
     public Set<ServerPlayerEntity> participants() {
@@ -133,8 +140,7 @@ public class DeACoudreActive {
             text = new TranslatableText("text.dac.game.start_singular");
         }
 
-        PlayerSet players = this.gameSpace.getPlayers();
-        players.sendMessage(text.formatted(Formatting.GREEN));
+        this.gameSpace.getPlayers().sendMessage(text.formatted(Formatting.GREEN));
     }
 
     private void onClose() {
@@ -203,17 +209,19 @@ public class DeACoudreActive {
             players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
             players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
         } else {
-            world.setBlockState(pos, this.blockStateMap.get(this.currentJumper));
+            world.setBlockState(pos, this.playerPalette.get(this.currentJumper));
 
             players.sendSound(SoundEvents.AMBIENT_UNDERWATER_ENTER);
         }
     }
 
     private boolean canFormCoudreAt(ServerWorld world, BlockPos pos) {
-        return world.getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
-                && world.getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
-                && world.getBlockState(pos.north()) != Blocks.WATER.getDefaultState()
-                && world.getBlockState(pos.south()) != Blocks.WATER.getDefaultState();
+        return !this.isFreeAt(world, pos.west()) && !this.isFreeAt(world, pos.east())
+                && !this.isFreeAt(world, pos.north()) && !this.isFreeAt(world, pos.south());
+    }
+
+    private boolean isFreeAt(ServerWorld world, BlockPos pos) {
+        return world.getBlockState(pos) == Blocks.WATER.getDefaultState();
     }
 
     private ActionResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
@@ -228,7 +236,7 @@ public class DeACoudreActive {
     private void eliminatePlayer(ServerPlayerEntity player) {
         if (this.participants.remove(player)) {
             this.jumpOrder.remove(player);
-            this.blockStateMap.remove(player);
+            this.playerPalette.remove(player);
             this.lives.removePlayer(player);
 
             Text message = new TranslatableText("text.dac.game.eliminated", player.getDisplayName())
@@ -287,7 +295,7 @@ public class DeACoudreActive {
             this.turnStarting = false;
         }
 
-        if (world.getBlockState(jumper.getBlockPos()).equals(Blocks.WATER.getDefaultState())) {
+        if (this.isFreeAt(world, jumper.getBlockPos())) {
             this.onPlayerLandInWater(jumper);
         }
 
@@ -374,7 +382,7 @@ public class DeACoudreActive {
         BlockBounds pool = this.gameMap.getPool();
         ServerWorld world = this.gameSpace.getWorld();
         for (BlockPos pos : pool) {
-            if (world.getBlockState(pos) == Blocks.WATER.getDefaultState()) {
+            if (this.isFreeAt(world, pos)) {
                 return false;
             }
         }
