@@ -3,7 +3,7 @@
   "name": "Chaotic Donut Dé à Coudre",
   "map": {
     "radius": 10,
-    "height": 80,
+    "height": 100,
     "shape": "donut",
     "in_circle_radius": 3,
     "spawn_block": {
