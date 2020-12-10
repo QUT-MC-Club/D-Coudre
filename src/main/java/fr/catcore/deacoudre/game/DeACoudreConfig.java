@@ -17,9 +17,10 @@ public class DeACoudreConfig {
         ).apply(instance, DeACoudreConfig::new);
     });
 
+    public static final BlockState[] PLAYER_PALETTE;
+
     public final DeACoudreMapConfig mapConfig;
     public final PlayerConfig playerConfig;
-    private static final BlockState[] playerBlocks;
     public final int life;
 
     public DeACoudreConfig(
@@ -32,12 +33,8 @@ public class DeACoudreConfig {
         this.life = life;
     }
 
-    public BlockState[] getPlayerBlocks() {
-        return playerBlocks;
-    }
-
     static {
-        playerBlocks = new BlockState[]{
+        PLAYER_PALETTE = new BlockState[]{
                 Blocks.BLACK_WOOL.getDefaultState(),
                 Blocks.BROWN_WOOL.getDefaultState(),
                 Blocks.GRAY_WOOL.getDefaultState(),

@@ -6,6 +6,19 @@ import xyz.nucleoid.plasmid.map.template.MapTemplate;
 import xyz.nucleoid.plasmid.util.BlockBounds;
 
 public class DeACoudreMapGenerator {
+    private static final BlockPos[] PLATFORM_BARRIER = new BlockPos[] {
+            new BlockPos(-2, 1, 1),
+            new BlockPos(-2, 1, 2),
+            new BlockPos(-2, 1, 3),
+            new BlockPos(-2, 1, 4),
+            new BlockPos(-1, 1, 4),
+            new BlockPos(0, 1, 4),
+            new BlockPos(1, 1, 4),
+            new BlockPos(2, 1, 4),
+            new BlockPos(2, 1, 3),
+            new BlockPos(2, 1, 2),
+            new BlockPos(2, 1, 1)
+    };
 
     private final DeACoudreMapConfig config;
     private final DeACoudreMapConfig.MapShape shape;
@@ -21,9 +34,9 @@ public class DeACoudreMapGenerator {
 
         this.buildSpawn(template);
         this.buildPool(map, template);
-        this.buildJumpingPlatform(map, template);
+        this.buildSequentialJumpingPlatform(map, template);
 
-        map.setSpawn(new BlockPos(0,3,0));
+        map.setSpawn(new BlockPos(0, 3, 0));
 
         return map;
     }
@@ -55,74 +68,36 @@ public class DeACoudreMapGenerator {
     }
 
     private void buildPool(DeACoudreMap map, MapTemplate builder) {
-        BlockPos.Mutable mutablePosWater = new BlockPos.Mutable();
-        BlockPos.Mutable mutablePosBorder = new BlockPos.Mutable();
-
-        BlockBounds bounds = shape.generatePool(this.config, builder, mutablePosWater, mutablePosBorder);
-        map.setPool(bounds);
+        map.setPool(this.shape.generatePool(this.config, builder));
     }
 
-    private void buildJumpingPlatform(DeACoudreMap map, MapTemplate builder) {
+    private void buildSequentialJumpingPlatform(DeACoudreMap map, MapTemplate builder) {
         BlockPos.Mutable mutable = new BlockPos.Mutable();
         BlockPos.Mutable barrierPos = new BlockPos.Mutable();
-        int minZ = 5 + (2* config.radius) + 1;
+        int minZ = 5 + (2 * this.config.radius) + 1;
+        int minY = this.config.height;
 
         for (int z = minZ; z <= minZ + 3; z++) {
             for (int x = -1; x <= 1; x++) {
-                mutable.set(x, config.height + 1, z);
+                mutable.set(x, minY + 1, z);
                 builder.setBlockState(mutable, this.config.jumpPlatformBlock);
             }
         }
-        BlockPos[] barrier = new BlockPos[]{
-                new BlockPos(-2, config.height + 1, minZ + 1),
-                new BlockPos(-2, config.height + 1, minZ + 2),
-                new BlockPos(-2, config.height + 1, minZ + 3),
-                new BlockPos(-2, config.height + 1, minZ + 4),
-                new BlockPos(-1, config.height + 1, minZ + 4),
-                new BlockPos(0, config.height + 1, minZ + 4),
-                new BlockPos(1, config.height + 1, minZ + 4),
-                new BlockPos(2, config.height + 1, minZ + 4),
-                new BlockPos(2, config.height + 1, minZ + 3),
-                new BlockPos(2, config.height + 1, minZ + 2),
-                new BlockPos(2, config.height + 1, minZ + 1),
 
-                new BlockPos(-2, config.height + 2, minZ + 1),
-                new BlockPos(-2, config.height + 2, minZ + 2),
-                new BlockPos(-2, config.height + 2, minZ + 3),
-                new BlockPos(-2, config.height + 2, minZ + 4),
-                new BlockPos(-1, config.height + 2, minZ + 4),
-                new BlockPos(0, config.height + 2, minZ + 4),
-                new BlockPos(1, config.height + 2, minZ + 4),
-                new BlockPos(2, config.height + 2, minZ + 4),
-                new BlockPos(2, config.height + 2, minZ + 3),
-                new BlockPos(2, config.height + 2, minZ + 2),
-                new BlockPos(2, config.height + 2, minZ + 1),
-
-                new BlockPos(-2, config.height + 3, minZ + 1),
-                new BlockPos(-2, config.height + 3, minZ + 2),
-                new BlockPos(-2, config.height + 3, minZ + 3),
-                new BlockPos(-2, config.height + 3, minZ + 4),
-                new BlockPos(-1, config.height + 3, minZ + 4),
-                new BlockPos(0, config.height + 3, minZ + 4),
-                new BlockPos(1, config.height + 3, minZ + 4),
-                new BlockPos(2, config.height + 3, minZ + 4),
-                new BlockPos(2, config.height + 3, minZ + 3),
-                new BlockPos(2, config.height + 3, minZ + 2),
-                new BlockPos(2, config.height + 3, minZ + 1)
-        };
-
-        for (BlockPos pos : barrier) {
-            barrierPos.set(pos.getX(), pos.getY(), pos.getZ());
-            builder.setBlockState(barrierPos, Blocks.BARRIER.getDefaultState());
+        for (BlockPos pos : PLATFORM_BARRIER) {
+            for (int y = 0; y < 3; y++) {
+                barrierPos.set(pos.getX(), pos.getY() + minY + y, minZ + pos.getZ());
+                builder.setBlockState(barrierPos, Blocks.BARRIER.getDefaultState());
+            }
         }
 
         map.setJumpingPlatform(new BlockBounds(
-                new BlockPos(-1, config.height, minZ-1),
-                new BlockPos(1, config.height, minZ + 3)
+                new BlockPos(-1, minY + 2, minZ - 1),
+                new BlockPos(1, minY + 2, minZ + 3)
         ));
         map.setJumpingArea(new BlockBounds(
-                new BlockPos(-2, config.height, minZ-1),
-                new BlockPos(2, config.height + 2, minZ + 4)
+                new BlockPos(-2, minY, minZ - 1),
+                new BlockPos(2, minY, minZ + 4)
         ));
     }
 }

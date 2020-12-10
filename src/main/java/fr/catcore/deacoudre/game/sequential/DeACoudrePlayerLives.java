@@ -1,4 +1,4 @@
-package fr.catcore.deacoudre.game;
+package fr.catcore.deacoudre.game.sequential;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;

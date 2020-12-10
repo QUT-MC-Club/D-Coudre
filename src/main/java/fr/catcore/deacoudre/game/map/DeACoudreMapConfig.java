@@ -114,13 +114,15 @@ public class DeACoudreMapConfig {
             return blockBounds;
         });
 
-        private GeneratePool generatePool;
+        private final GeneratePool generatePool;
 
         MapShape(GeneratePool generatePool) {
             this.generatePool = generatePool;
         }
 
-        public BlockBounds generatePool(DeACoudreMapConfig config, MapTemplate builder, BlockPos.Mutable mutablePosWater, BlockPos.Mutable mutablePosBorder) {
+        public BlockBounds generatePool(DeACoudreMapConfig config, MapTemplate builder) {
+            BlockPos.Mutable mutablePosWater = new BlockPos.Mutable();
+            BlockPos.Mutable mutablePosBorder = new BlockPos.Mutable();
             return this.generatePool.generatePool(config, builder, mutablePosWater, mutablePosBorder);
         }
 

@@ -2,6 +2,7 @@ package fr.catcore.deacoudre.game;
 
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
 import fr.catcore.deacoudre.game.map.DeACoudreMapGenerator;
+import fr.catcore.deacoudre.game.sequential.DeACoudreSequential;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
@@ -62,7 +63,7 @@ public class DeACoudreWaiting {
     }
 
     private StartResult requestStart() {
-        DeACoudreActive.open(this.gameSpace, this.map, this.config);
+        DeACoudreSequential.open(this.gameSpace, this.map, this.config);
         return StartResult.OK;
     }
 
