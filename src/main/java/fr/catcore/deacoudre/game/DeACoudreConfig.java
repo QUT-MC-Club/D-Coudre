@@ -13,7 +13,8 @@ public class DeACoudreConfig {
         return instance.group(
                 DeACoudreMapConfig.CODEC.fieldOf("map").forGetter(config -> config.mapConfig),
                 PlayerConfig.CODEC.fieldOf("players").forGetter(config -> config.playerConfig),
-                Codec.INT.fieldOf("life").forGetter(config -> config.life)
+                Codec.INT.optionalFieldOf("life", 3).forGetter(config -> config.life),
+                Codec.BOOL.optionalFieldOf("concurrent", false).forGetter(config -> config.concurrent)
         ).apply(instance, DeACoudreConfig::new);
     });
 
@@ -22,15 +23,18 @@ public class DeACoudreConfig {
     public final DeACoudreMapConfig mapConfig;
     public final PlayerConfig playerConfig;
     public final int life;
+    public final boolean concurrent;
 
     public DeACoudreConfig(
             DeACoudreMapConfig mapConfig,
             PlayerConfig playerConfig,
-            int life
+            int life,
+            boolean concurrent
     ) {
         this.mapConfig = mapConfig;
         this.playerConfig = playerConfig;
         this.life = life;
+        this.concurrent = concurrent;
     }
 
     static {

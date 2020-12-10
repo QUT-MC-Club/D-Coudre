@@ -1,5 +1,6 @@
 package fr.catcore.deacoudre.game;
 
+import fr.catcore.deacoudre.game.concurrent.DeACoudreConcurrent;
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
 import fr.catcore.deacoudre.game.map.DeACoudreMapGenerator;
 import fr.catcore.deacoudre.game.sequential.DeACoudreSequential;
@@ -9,11 +10,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import xyz.nucleoid.fantasy.BubbleWorldConfig;
-import xyz.nucleoid.plasmid.game.GameOpenContext;
-import xyz.nucleoid.plasmid.game.GameOpenProcedure;
-import xyz.nucleoid.plasmid.game.GameSpace;
-import xyz.nucleoid.plasmid.game.GameWaitingLobby;
-import xyz.nucleoid.plasmid.game.StartResult;
+import xyz.nucleoid.plasmid.game.*;
 import xyz.nucleoid.plasmid.game.event.PlayerAddListener;
 import xyz.nucleoid.plasmid.game.event.PlayerDeathListener;
 import xyz.nucleoid.plasmid.game.event.RequestStartListener;
@@ -63,7 +60,11 @@ public class DeACoudreWaiting {
     }
 
     private StartResult requestStart() {
-        DeACoudreSequential.open(this.gameSpace, this.map, this.config);
+        if (this.config.concurrent) {
+            DeACoudreConcurrent.open(this.gameSpace, this.map, this.config);
+        } else {
+            DeACoudreSequential.open(this.gameSpace, this.map, this.config);
+        }
         return StartResult.OK;
     }
 

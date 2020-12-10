@@ -144,13 +144,10 @@ public class DeACoudreSequential {
     private ActionResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         if (player == null) return ActionResult.FAIL;
 
-        if (source == DamageSource.OUT_OF_WORLD) {
-            this.onPlayerFailJump(player);
-            return ActionResult.FAIL;
-        }
-
-        if (player == this.currentJumper && source == DamageSource.FALL) {
-            this.onPlayerFailJump(player);
+        if (player == this.currentJumper) {
+            if (source == DamageSource.OUT_OF_WORLD || source == DamageSource.FALL) {
+                this.onPlayerFailJump(player);
+            }
         }
 
         return ActionResult.FAIL;
