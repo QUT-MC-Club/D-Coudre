@@ -10,7 +10,7 @@
   "contact": {},
   "license": "MIT",
   "icon": "assets/deacoudre/icon.png",
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
     "main": [
       "fr.catcore.deacoudre.DeACoudre"

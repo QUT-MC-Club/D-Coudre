@@ -1,5 +1,6 @@
-package fr.catcore.deacoudre.game;
+package fr.catcore.deacoudre.game.sequential;
 
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.scoreboard.ScoreboardCriterion;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.ScoreboardPlayerScore;
@@ -12,25 +13,24 @@ import xyz.nucleoid.plasmid.widget.GlobalWidgets;
 import xyz.nucleoid.plasmid.widget.SidebarWidget;
 
 import java.util.Collection;
-import java.util.Map;
 
-public class DeACoudreScoreboard implements AutoCloseable {
+public class DeACoudreSequentialScoreboard implements AutoCloseable {
 
     private SidebarWidget sidebar;
-    private DeACoudreActive game;
+    private DeACoudreSequential game;
     private ScoreboardObjective lifeObjective;
 
     private boolean dirty = true;
 
     private long ticks;
 
-    public DeACoudreScoreboard(DeACoudreActive game, SidebarWidget sidebar, ScoreboardObjective lifeObjective) {
+    public DeACoudreSequentialScoreboard(DeACoudreSequential game, SidebarWidget sidebar, ScoreboardObjective lifeObjective) {
         this.sidebar = sidebar;
         this.game = game;
         this.lifeObjective = lifeObjective;
     }
 
-    public static DeACoudreScoreboard create(DeACoudreActive game, GlobalWidgets widgets) {
+    public static DeACoudreSequentialScoreboard create(DeACoudreSequential game, GlobalWidgets widgets) {
         ServerScoreboard scoreboard = game.gameSpace.getWorld().getServer().getScoreboard();
 
         Text title = new LiteralText("Dé à Coudre").formatted(Formatting.BLUE, Formatting.BOLD);
@@ -44,7 +44,7 @@ public class DeACoudreScoreboard implements AutoCloseable {
 
         scoreboard.setObjectiveSlot(0, scoreboardObjective2);
 
-        return new DeACoudreScoreboard(game, sidebar, scoreboardObjective2);
+        return new DeACoudreSequentialScoreboard(game, sidebar, scoreboardObjective2);
     }
 
     public void tick() {
@@ -67,26 +67,24 @@ public class DeACoudreScoreboard implements AutoCloseable {
             content.writeLine(Formatting.BLUE.toString() + playersAlive + " players alive");
             content.writeLine("");
 
-            ServerPlayerEntity currentJumper = this.game.nextJumper;
-            ServerPlayerEntity nextJumper = this.game.nextPlayer(false);
+            ServerPlayerEntity currentJumper = this.game.currentJumper;
+            ServerPlayerEntity nextJumper = this.game.getNextJumper();
 
             if (currentJumper != null) {
-                content.writeLine("Current Jumper: " + currentJumper.getName().getString());
-                content.writeLine("");
+                content.writeLine("Jumping: " + currentJumper.getName().getString());
             }
             if (nextJumper != null) {
-                content.writeLine("Next Jumper: " + nextJumper.getName().getString());
-                content.writeLine("");
+                content.writeLine("Up Next: " + nextJumper.getName().getString());
             }
         });
 
         ServerScoreboard scoreboard = this.game.gameSpace.getWorld().getServer().getScoreboard();
         clear(scoreboard, lifeObjective);
-        for (Map.Entry<ServerPlayerEntity, Integer> entry : this.game.lifes().entrySet()) {
+        for (Object2IntMap.Entry<ServerPlayerEntity> entry : this.game.lives()) {
             if (entry.getKey() == null) continue;
             ServerPlayerEntity playerEntity = entry.getKey();
             scoreboard.getPlayerScore(playerEntity.getName().getString(), lifeObjective)
-                .setScore(entry.getValue());
+                .setScore(entry.getIntValue());
         }
     }
 

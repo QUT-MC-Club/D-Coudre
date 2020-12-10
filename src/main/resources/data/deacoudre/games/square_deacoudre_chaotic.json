@@ -1,0 +1,29 @@
+{
+  "type": "deacoudre:deacoudre",
+  "name": "Chaotic Square Dé à Coudre",
+  "map": {
+    "radius": 7,
+    "height": 80,
+    "shape": "square",
+    "spawn_block": {
+      "Name": "minecraft:spruce_planks",
+      "Properties": {}
+    },
+    "pool_outline_block": {
+      "Name": "minecraft:spruce_wood",
+      "Properties": {
+        "axis": "y"
+      }
+    },
+    "jump_platform_block": {
+      "Name": "minecraft:spruce_planks",
+      "Properties": {}
+    }
+  },
+  "players": {
+    "min": 1,
+    "max": 8,
+    "threshold": 2
+  },
+  "concurrent": true
+}
