@@ -20,8 +20,8 @@ public class DeACoudreMapGenerator {
         DeACoudreMap map = new DeACoudreMap(template, this.config);
 
         this.buildSpawn(template);
-        this.buildPool(template);
-        this.buildJumpingPlatform(template);
+        this.buildPool(map, template);
+        this.buildJumpingPlatform(map, template);
 
         map.setSpawn(new BlockPos(0,3,0));
 
@@ -54,16 +54,15 @@ public class DeACoudreMapGenerator {
         }
     }
 
-    private void buildPool(MapTemplate builder) {
+    private void buildPool(DeACoudreMap map, MapTemplate builder) {
         BlockPos.Mutable mutablePosWater = new BlockPos.Mutable();
         BlockPos.Mutable mutablePosBorder = new BlockPos.Mutable();
 
         BlockBounds bounds = shape.generatePool(this.config, builder, mutablePosWater, mutablePosBorder);
-
-        builder.getMetadata().addRegion("pool", bounds);
+        map.setPool(bounds);
     }
 
-    private void buildJumpingPlatform(MapTemplate builder) {
+    private void buildJumpingPlatform(DeACoudreMap map, MapTemplate builder) {
         BlockPos.Mutable mutable = new BlockPos.Mutable();
         BlockPos.Mutable barrierPos = new BlockPos.Mutable();
         int minZ = 5 + (2* config.radius) + 1;
@@ -116,15 +115,14 @@ public class DeACoudreMapGenerator {
             barrierPos.set(pos.getX(), pos.getY(), pos.getZ());
             builder.setBlockState(barrierPos, Blocks.BARRIER.getDefaultState());
         }
-        BlockBounds bounds = new BlockBounds(
+
+        map.setJumpingPlatform(new BlockBounds(
                 new BlockPos(-1, config.height, minZ-1),
                 new BlockPos(1, config.height, minZ + 3)
-        );
-        BlockBounds bounds1 = new BlockBounds(
+        ));
+        map.setJumpingArea(new BlockBounds(
                 new BlockPos(-2, config.height, minZ-1),
                 new BlockPos(2, config.height + 2, minZ + 4)
-        );
-        builder.getMetadata().addRegion("jumpingPlatform", bounds);
-        builder.getMetadata().addRegion("jumpingArea", bounds1);
+        ));
     }
 }

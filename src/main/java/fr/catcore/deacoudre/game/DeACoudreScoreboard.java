@@ -1,5 +1,6 @@
 package fr.catcore.deacoudre.game;
 
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.scoreboard.ScoreboardCriterion;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.ScoreboardPlayerScore;
@@ -12,7 +13,6 @@ import xyz.nucleoid.plasmid.widget.GlobalWidgets;
 import xyz.nucleoid.plasmid.widget.SidebarWidget;
 
 import java.util.Collection;
-import java.util.Map;
 
 public class DeACoudreScoreboard implements AutoCloseable {
 
@@ -67,8 +67,8 @@ public class DeACoudreScoreboard implements AutoCloseable {
             content.writeLine(Formatting.BLUE.toString() + playersAlive + " players alive");
             content.writeLine("");
 
-            ServerPlayerEntity currentJumper = this.game.nextJumper;
-            ServerPlayerEntity nextJumper = this.game.nextPlayer(false);
+            ServerPlayerEntity currentJumper = this.game.currentJumper;
+            ServerPlayerEntity nextJumper = this.game.nextJumper(false);
 
             if (currentJumper != null) {
                 content.writeLine("Current Jumper: " + currentJumper.getName().getString());
@@ -82,11 +82,11 @@ public class DeACoudreScoreboard implements AutoCloseable {
 
         ServerScoreboard scoreboard = this.game.gameSpace.getWorld().getServer().getScoreboard();
         clear(scoreboard, lifeObjective);
-        for (Map.Entry<ServerPlayerEntity, Integer> entry : this.game.lifes().entrySet()) {
+        for (Object2IntMap.Entry<ServerPlayerEntity> entry : this.game.lives()) {
             if (entry.getKey() == null) continue;
             ServerPlayerEntity playerEntity = entry.getKey();
             scoreboard.getPlayerScore(playerEntity.getName().getString(), lifeObjective)
-                .setScore(entry.getValue());
+                .setScore(entry.getIntValue());
         }
     }
 

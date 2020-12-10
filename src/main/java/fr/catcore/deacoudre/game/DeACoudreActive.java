@@ -1,15 +1,14 @@
 package fr.catcore.deacoudre.game;
 
 import com.google.common.collect.Sets;
-import fr.catcore.deacoudre.DeACoudre;
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -21,30 +20,15 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import xyz.nucleoid.plasmid.game.GameCloseReason;
 import xyz.nucleoid.plasmid.game.GameSpace;
-import xyz.nucleoid.plasmid.game.event.GameCloseListener;
-import xyz.nucleoid.plasmid.game.event.GameOpenListener;
-import xyz.nucleoid.plasmid.game.event.GameTickListener;
-import xyz.nucleoid.plasmid.game.event.OfferPlayerListener;
-import xyz.nucleoid.plasmid.game.event.PlayerAddListener;
-import xyz.nucleoid.plasmid.game.event.PlayerDamageListener;
-import xyz.nucleoid.plasmid.game.event.PlayerDeathListener;
-import xyz.nucleoid.plasmid.game.event.PlayerRemoveListener;
+import xyz.nucleoid.plasmid.game.event.*;
 import xyz.nucleoid.plasmid.game.player.JoinResult;
+import xyz.nucleoid.plasmid.game.player.PlayerSet;
 import xyz.nucleoid.plasmid.game.rule.GameRule;
 import xyz.nucleoid.plasmid.game.rule.RuleResult;
 import xyz.nucleoid.plasmid.util.BlockBounds;
-import xyz.nucleoid.plasmid.util.PlayerRef;
 import xyz.nucleoid.plasmid.widget.GlobalWidgets;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 
 public class DeACoudreActive {
 
@@ -54,14 +38,16 @@ public class DeACoudreActive {
     private final DeACoudreMap gameMap;
 
     private final Set<ServerPlayerEntity> participants;
+    private final List<ServerPlayerEntity> jumpOrder;
 
     private final Map<ServerPlayerEntity, BlockState> blockStateMap;
 
-    private final Map<ServerPlayerEntity, Integer> lifeMap;
+    private final DeACoudrePlayerLives lives;
 
     private final DeACoudreSpawnLogic spawnLogic;
 
-    public ServerPlayerEntity nextJumper;
+    public ServerPlayerEntity currentJumper;
+    private int jumperIndex;
 
     private boolean turnStarting = true;
 
@@ -70,25 +56,31 @@ public class DeACoudreActive {
     private final boolean singleplayer;
     private long closeTime = -1;
     private long ticks;
-    private long seconds;
+    private long jumpingSeconds;
 
     private DeACoudreActive(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config, Set<ServerPlayerEntity> participants, GlobalWidgets widgets) {
         this.gameSpace = gameSpace;
         this.config = config;
         this.gameMap = map;
         this.participants = participants;
+
+        this.jumpOrder = new ArrayList<>(participants);
+        Collections.shuffle(this.jumpOrder);
+
         this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
-        this.nextJumper = (ServerPlayerEntity) this.participants.toArray()[0];
-        this.blockStateMap = new HashMap<>();
+        this.currentJumper = this.jumpOrder.get(0);
+        this.blockStateMap = new Object2ObjectOpenHashMap<>();
+
         List<BlockState> blockList = Arrays.asList(this.config.getPlayerBlocks());
         Collections.shuffle(blockList);
-        for (ServerPlayerEntity playerRef : this.participants) {
-            this.blockStateMap.put(playerRef, blockList.get(new Random().nextInt(blockList.size())));
+        int blockIndex = 0;
+        for (ServerPlayerEntity player : this.participants) {
+            this.blockStateMap.put(player, blockList.get(blockIndex++ % blockList.size()));
         }
-        this.lifeMap = new HashMap<>();
-        for (ServerPlayerEntity playerRef : this.participants) {
-            this.lifeMap.put(playerRef, config.life);
-        }
+
+        this.lives = new DeACoudrePlayerLives();
+        this.lives.addPlayers(this.participants, config.life);
+
         this.scoreboard = DeACoudreScoreboard.create(this, widgets);
         this.singleplayer = this.participants.size() <= 1;
     }
@@ -97,8 +89,8 @@ public class DeACoudreActive {
         return this.participants;
     }
 
-    public Map<ServerPlayerEntity, Integer> lifes() {
-        return this.lifeMap;
+    public DeACoudrePlayerLives lives() {
+        return this.lives;
     }
 
     public static void open(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config) {
@@ -120,7 +112,7 @@ public class DeACoudreActive {
 
             game.on(OfferPlayerListener.EVENT, player -> JoinResult.ok());
             game.on(PlayerAddListener.EVENT, active::addPlayer);
-            game.on(PlayerRemoveListener.EVENT, active::removePlayer);
+            game.on(PlayerRemoveListener.EVENT, active::eliminatePlayer);
 
             game.on(GameTickListener.EVENT, active::tick);
 
@@ -130,17 +122,19 @@ public class DeACoudreActive {
     }
 
     private void onOpen() {
-        ServerWorld world = this.gameSpace.getWorld();
-        for (ServerPlayerEntity ref : this.participants) {
-            if (ref != null && ref.getServerWorld() == world) this.spawnParticipant(ref);
+        for (ServerPlayerEntity player : this.participants) {
+            this.spawnParticipant(player);
         }
+
         MutableText text;
         if (this.config.life > 1) {
             text = new TranslatableText("text.dac.game.start_plural", this.config.life);
         } else {
             text = new TranslatableText("text.dac.game.start_singular");
         }
-        this.broadcastMessage(text.formatted(Formatting.GREEN));
+
+        PlayerSet players = this.gameSpace.getPlayers();
+        players.sendMessage(text.formatted(Formatting.GREEN));
     }
 
     private void onClose() {
@@ -156,30 +150,70 @@ public class DeACoudreActive {
     private ActionResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         if (player == null) return ActionResult.FAIL;
 
-        Vec3d playerPos = player.getPos();
-        BlockBounds poolBounds = this.gameMap.getTemplate().getMetadata().getFirstRegionBounds("pool");
-        boolean isInPool = poolBounds.contains((int)playerPos.x, (int)playerPos.y, (int)playerPos.z);
-        if (source == DamageSource.FALL && ((playerPos.y < 10 && playerPos.y > 6) || isInPool)) {
-
-            if (this.lifeMap.get(player) < 2) this.eliminatePlayer(player);
-            else {
-                this.spawnParticipant(player);
-                this.lifeMap.replace(player, this.lifeMap.get(player) - 1);
-                this.nextJumper = this.nextPlayer(true);
-                MutableText message = new TranslatableText("text.dac.game.lose_life", player.getDisplayName());
-                if (this.lifeMap.get(player) > 1) {
-                    message = message.append(new TranslatableText("text.dac.game.lives_left", this.lifeMap.get(player)));
-                } else {
-                    message = message.append(new TranslatableText("text.dac.game.life_left"));
-                }
-
-                this.broadcastMessage(message.formatted(Formatting.YELLOW));
-            }
-        } else if (source == DamageSource.OUT_OF_WORLD) {
-            BlockPos blockPos = this.gameMap.getSpawn();
-            player.teleport(this.gameSpace.getWorld(), blockPos.getX(), 10, blockPos.getZ(), 180F, 0F);
+        if (source == DamageSource.OUT_OF_WORLD) {
+            this.onPlayerFailJump(player);
+            return ActionResult.FAIL;
         }
+
+        if (player == this.currentJumper && source == DamageSource.FALL) {
+            BlockBounds pool = this.gameMap.getPool();
+            BlockPos groundPos = player.getBlockPos().down();
+            if (pool.contains(groundPos)) {
+                this.onPlayerFailJump(player);
+            }
+        }
+
         return ActionResult.FAIL;
+    }
+
+    private void onPlayerFailJump(ServerPlayerEntity player) {
+        int livesRemaining = this.lives.takeLife(player);
+        if (livesRemaining == 0) {
+            this.eliminatePlayer(player);
+            return;
+        }
+
+        MutableText message = new TranslatableText("text.dac.game.lose_life", player.getDisplayName());
+        if (livesRemaining > 1) {
+            message = message.append(new TranslatableText("text.dac.game.lives_left", livesRemaining));
+        } else {
+            message = message.append(new TranslatableText("text.dac.game.life_left"));
+        }
+
+        this.gameSpace.getPlayers().sendMessage(message.formatted(Formatting.YELLOW));
+
+        this.spawnParticipant(player);
+        this.currentJumper = this.nextJumper(true);
+    }
+
+    private void onPlayerLandInWater(ServerPlayerEntity player) {
+        ServerWorld world = this.gameSpace.getWorld();
+        PlayerSet players = this.gameSpace.getPlayers();
+
+        BlockPos pos = player.getBlockPos();
+
+        this.currentJumper = this.nextJumper(true);
+        this.spawnParticipant(player);
+
+        if (this.canFormCoudreAt(world, pos)) {
+            world.setBlockState(pos, Blocks.EMERALD_BLOCK.getDefaultState());
+
+            int remainingLife = this.lives.grantLife(this.currentJumper);
+            players.sendMessage(new TranslatableText("text.dac.game.dac", player.getDisplayName(), remainingLife).formatted(Formatting.AQUA));
+            players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
+            players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
+        } else {
+            world.setBlockState(pos, this.blockStateMap.get(this.currentJumper));
+
+            players.sendSound(SoundEvents.AMBIENT_UNDERWATER_ENTER);
+        }
+    }
+
+    private boolean canFormCoudreAt(ServerWorld world, BlockPos pos) {
+        return world.getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
+                && world.getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
+                && world.getBlockState(pos.north()) != Blocks.WATER.getDefaultState()
+                && world.getBlockState(pos.south()) != Blocks.WATER.getDefaultState();
     }
 
     private ActionResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
@@ -191,38 +225,25 @@ public class DeACoudreActive {
         this.spawnLogic.spawnPlayer(player, GameMode.ADVENTURE);
     }
 
-    private void removePlayer(ServerPlayerEntity player) {
-        boolean contains = false;
-        if (this.participants.contains(player)) contains = true;
-        if (contains) this.eliminatePlayer(player);
-
-        Text message = new TranslatableText("text.dac.game.left", player.getDisplayName());
-        if (contains) this.broadcastMessage(message);
-    }
-
     private void eliminatePlayer(ServerPlayerEntity player) {
-        Text message = new TranslatableText("text.dac.game.eliminated", player.getDisplayName())
-                .formatted(Formatting.RED);
+        if (this.participants.remove(player)) {
+            this.jumpOrder.remove(player);
+            this.blockStateMap.remove(player);
+            this.lives.removePlayer(player);
 
-        this.broadcastMessage(message);
-        this.broadcastSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP);
+            Text message = new TranslatableText("text.dac.game.eliminated", player.getDisplayName())
+                    .formatted(Formatting.RED);
 
-        this.spawnSpectator(player);
-        this.participants.remove(player);
-        this.lifeMap.remove(player);
-        this.blockStateMap.remove(player);
+            PlayerSet players = this.gameSpace.getPlayers();
+            players.sendMessage(message);
+            players.sendSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP);
 
-        if (this.singleplayer || player == this.nextJumper) {
-           this.nextJumper = nextPlayer(true);
+            this.spawnSpectator(player);
+
+            if (this.singleplayer || player == this.currentJumper) {
+                this.currentJumper = this.nextJumper(true);
+            }
         }
-    }
-
-    private void broadcastMessage(Text message) {
-        this.gameSpace.getPlayers().sendMessage(message);
-    }
-
-    private void broadcastSound(SoundEvent sound) {
-        this.gameSpace.getPlayers().sendSound(sound);
     }
 
     private void spawnSpectator(ServerPlayerEntity player) {
@@ -230,104 +251,66 @@ public class DeACoudreActive {
     }
 
     private void tick() {
-        if (this.nextJumper == null
-                || this.nextJumper.getServerWorld() != this.gameSpace.getWorld()) {
-            if (this.nextJumper != null) {
-                this.eliminatePlayer(this.nextJumper);
+        ServerPlayerEntity jumper = this.currentJumper;
+        PlayerSet players = this.gameSpace.getPlayers();
+        ServerWorld world = this.gameSpace.getWorld();
+        long time = world.getTime();
+
+        // check for invalid jumper
+        if (jumper == null || !players.contains(jumper) || !this.participants.contains(jumper)) {
+            this.currentJumper = this.nextJumper(true);
+            if (jumper != null) {
+                this.eliminatePlayer(jumper);
             }
-            else this.nextJumper = nextPlayer(true);
             return;
         }
+
         this.ticks++;
-        this.updateExperienceBar();
         this.scoreboard.tick();
-        ServerPlayerEntity playerEntity = this.nextJumper;
-        long time = this.gameSpace.getWorld().getTime();
+
         if (this.closeTime > 0) {
             this.tickClosing(this.gameSpace, time);
             return;
         }
-        if (this.nextJumper != null) {
-            if (this.seconds == 19) this.nextJumper.sendMessage(new TranslatableText("text.dac.time.1"), true);
-            else this.nextJumper.sendMessage(new TranslatableText("text.dac.time.+", 20 - this.seconds), true);
-        }
-        if (this.turnStarting && this.participants.contains(this.nextJumper)) {
-            this.ticks = 0;
-            this.seconds = 0;
-            BlockBounds jumpBoundaries = this.gameMap.getTemplate().getMetadata().getFirstRegionBounds("jumpingPlatform");
-            Vec3d vec3d = jumpBoundaries.getCenter().add(0, 2, 0);
-            if (playerEntity == null || this.nextJumper == null) {
-                this.broadcastMessage(new TranslatableText("text.dac.error.next_jumper.null").formatted(Formatting.RED));
-                this.nextJumper = nextPlayer(false);
-                playerEntity = this.nextJumper;
-                this.broadcastMessage(new TranslatableText("text.dac.error.next_jumper.try", playerEntity.getName()));
-                this.scoreboard.tick();
-            }
-            playerEntity.teleport(this.gameSpace.getWorld(), vec3d.x, vec3d.y, vec3d.z, 180F, 0F);
-            playerEntity.playSound(SoundEvents.BLOCK_BELL_USE, SoundCategory.MASTER, 1.0F, 1.0F);
-            Text message = playerEntity.getDisplayName().shallowCopy();
 
-            this.broadcastMessage(new TranslatableText("text.dac.game.turn", message.getString()).formatted(Formatting.BLUE));
+        if (this.jumpingSeconds == 19) jumper.sendMessage(new TranslatableText("text.dac.time.1"), true);
+        else jumper.sendMessage(new TranslatableText("text.dac.time.+", 20 - this.jumpingSeconds), true);
+
+        if (this.turnStarting) {
+            this.ticks = 0;
+            this.jumpingSeconds = 0;
+            BlockBounds platform = this.gameMap.getJumpingPlatform();
+            Vec3d platformSpawn = platform.getCenter().add(0, 2, 0);
+            jumper.teleport(world, platformSpawn.x, platformSpawn.y, platformSpawn.z, 180F, 0F);
+            jumper.playSound(SoundEvents.BLOCK_BELL_USE, SoundCategory.MASTER, 1.0F, 1.0F);
+            players.sendMessage(new TranslatableText("text.dac.game.turn", jumper.getDisplayName()).formatted(Formatting.BLUE));
             this.turnStarting = false;
         }
-        if (playerEntity == null || this.nextJumper == null) {
-            if (playerEntity == null) {
-                DeACoudre.LOGGER.warn("playerEntity is null!");
-            }
-            if (this.nextJumper == null) {
-                DeACoudre.LOGGER.warn(new TranslatableText("text.dac.error.next_jumper.null"));
-                this.nextJumper = nextPlayer(true);
-            }
-        } else if (this.gameSpace.getWorld().getBlockState(playerEntity.getBlockPos()).equals(Blocks.WATER.getDefaultState()) && this.participants.contains(this.nextJumper)) {
-            BlockPos pos = playerEntity.getBlockPos();
-            boolean coudre = false;
-            if (this.gameSpace.getWorld().getBlockState(pos.west()) != Blocks.WATER.getDefaultState()
-                && this.gameSpace.getWorld().getBlockState(pos.east()) != Blocks.WATER.getDefaultState()
-                && this.gameSpace.getWorld().getBlockState(pos.north()) != Blocks.WATER.getDefaultState()
-                && this.gameSpace.getWorld().getBlockState(pos.south()) != Blocks.WATER.getDefaultState()
-            ) {
-                this.gameSpace.getWorld().setBlockState(pos, Blocks.EMERALD_BLOCK.getDefaultState());
-                this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) + 1);
-                Text message = playerEntity.getDisplayName().shallowCopy();
 
-                this.broadcastMessage(new TranslatableText("text.dac.game.dac", message.getString(), this.lifeMap.get(this.nextJumper)).formatted(Formatting.AQUA));
-                coudre = true;
-            } else {
-                this.gameSpace.getWorld().setBlockState(pos, this.blockStateMap.get(this.nextJumper));
-            }
-            this.nextJumper = nextPlayer(true);
-            spawnParticipant(playerEntity);
-            if (coudre) {
-                this.broadcastSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
-                this.broadcastSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
-            } else {
-                this.broadcastSound(SoundEvents.AMBIENT_UNDERWATER_ENTER);
-            }
+        if (world.getBlockState(jumper.getBlockPos()).equals(Blocks.WATER.getDefaultState())) {
+            this.onPlayerLandInWater(jumper);
         }
-        if (this.ticks % 20 == 0 && !this.turnStarting) {
-            this.seconds++;
-        }
-        BlockBounds jumpingArea = this.gameMap.getTemplate().getMetadata().getFirstRegionBounds("jumpingArea");
-        if (this.seconds % 20 == 0 && !this.turnStarting && this.nextJumper != null && playerEntity != null && jumpingArea.contains(playerEntity.getBlockPos())) {
-            this.broadcastMessage(new TranslatableText("text.dac.game.slow", playerEntity.getName().getString(), this.lifeMap.get(this.nextJumper) - 1).formatted(Formatting.YELLOW));
-            this.lifeMap.replace(this.nextJumper, this.lifeMap.get(this.nextJumper) - 1);
-            this.nextJumper = nextPlayer(true);
-            spawnParticipant(playerEntity);
-            if (this.lifeMap.get(playerEntity) < 1) {
-                eliminatePlayer(playerEntity);
+
+        if (!this.turnStarting && this.ticks % 20 == 0) {
+            this.jumpingSeconds++;
+
+            if (this.jumpingSeconds >= 20) {
+                int remainingLife = this.lives.takeLife(jumper);
+
+                players.sendMessage(new TranslatableText("text.dac.game.slow", jumper.getName().getString(), remainingLife).formatted(Formatting.YELLOW));
+                this.currentJumper = this.nextJumper(true);
+                this.spawnParticipant(jumper);
+
+                if (remainingLife == 0) {
+                    this.eliminatePlayer(jumper);
+                }
             }
         }
+
         WinResult result = this.checkWinResult();
         if (result.isWin()) {
             this.broadcastWin(result);
             this.closeTime = time + 20 * 5;
-        }
-    }
-
-    private void updateExperienceBar() {
-        for (ServerPlayerEntity playerEntity : this.participants) {
-            if (playerEntity == null) continue;
-            if (this.lifeMap.containsKey(playerEntity)) playerEntity.setExperienceLevel(this.lifeMap.get(playerEntity));
         }
     }
 
@@ -341,8 +324,9 @@ public class DeACoudreActive {
             message = new TranslatableText("text.dac.game.won.nobody").formatted(Formatting.GOLD);
         }
 
-        this.broadcastMessage(message);
-        this.broadcastSound(SoundEvents.ENTITY_VILLAGER_YES);
+        PlayerSet players = this.gameSpace.getPlayers();
+        players.sendMessage(message);
+        players.sendSound(SoundEvents.ENTITY_VILLAGER_YES);
     }
 
     private void tickClosing(GameSpace game, long time) {
@@ -351,45 +335,23 @@ public class DeACoudreActive {
         }
     }
 
-    public ServerPlayerEntity nextPlayer(boolean newTurn) {
-        boolean bool = false;
-        boolean bool2 = true;
-        ServerPlayerEntity next = this.nextJumper;
-        for (ServerPlayerEntity playerRef : participants) {
-            if (playerRef == next) {
-                bool = true;
-                bool2 = false;
-                continue;
-            }
-            if (bool) {
-                bool = false;
-                next = playerRef;
-                if (newTurn) {
-                    this.turnStarting = true;
-                }
-                break;
-            }
+    public ServerPlayerEntity nextJumper(boolean newTurn) {
+        int jumperIndex = (this.jumperIndex + 1) % this.jumpOrder.size();
+        if (newTurn) {
+            this.jumperIndex = jumperIndex;
+            this.turnStarting = true;
         }
-        if ((bool || bool2) && next == this.nextJumper) {
-            for (ServerPlayerEntity playerRef : participants) {
-                next = playerRef;
-                if (newTurn) {
-                    this.turnStarting = true;
-                }
-                break;
-            }
-        }
-        if (next == this.nextJumper && !this.singleplayer) {
-            DeACoudre.LOGGER.warn("next is equals to nextJumper, something might be wrong!");
-            return null;
-        }
-        return next;
+        return this.jumpOrder.get(jumperIndex);
     }
 
     private WinResult checkWinResult() {
         // for testing purposes: don't end the game if we only ever had one participant
         if (this.singleplayer) {
             return WinResult.no();
+        }
+
+        if (this.isPoolFull()) {
+            return WinResult.win(null);
         }
 
         ServerPlayerEntity winningPlayer = null;
@@ -405,17 +367,18 @@ public class DeACoudreActive {
             }
         }
 
-        BlockBounds pool = this.gameMap.getTemplate().getMetadata().getFirstRegionBounds("pool");
-        boolean isFull = true;
-        for (BlockPos pos : pool) {
-            if (this.gameSpace.getWorld().getBlockState(pos) == Blocks.WATER.getDefaultState()) isFull = false;
-        }
-
-        if (isFull) {
-            return WinResult.win(null);
-        }
-
         return WinResult.win(winningPlayer);
+    }
+
+    private boolean isPoolFull() {
+        BlockBounds pool = this.gameMap.getPool();
+        ServerWorld world = this.gameSpace.getWorld();
+        for (BlockPos pos : pool) {
+            if (world.getBlockState(pos) == Blocks.WATER.getDefaultState()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     static class WinResult {
