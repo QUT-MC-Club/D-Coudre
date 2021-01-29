@@ -180,7 +180,7 @@ public class DeACoudreSequential {
         if (this.pool.canFormCoudreAt(pos)) {
             this.pool.putCoudreAt(pos);
 
-            int remainingLife = this.lives.grantLife(this.currentJumper);
+            int remainingLife = this.lives.grantLife(player);
             players.sendMessage(new TranslatableText("text.dac.game.dac", player.getDisplayName(), remainingLife).formatted(Formatting.AQUA));
             players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
             players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
