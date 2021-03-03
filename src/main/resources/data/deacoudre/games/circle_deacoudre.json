@@ -1,6 +1,6 @@
 {
   "type": "deacoudre:deacoudre",
-  "name": "Circle Dé à Coudre",
+  "translation": "game.deacoudre.deacoudre.circle_deacoudre",
   "map": {
     "radius": 10,
     "height": 100,
@@ -25,5 +25,8 @@
     "max": 8,
     "threshold": 2
   },
-  "life": 3
+  "life": 3,
+  "custom": {
+    "gamegui:icon": "minecraft:water_bucket"
+  }
 }

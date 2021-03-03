@@ -1,6 +1,6 @@
 {
   "type": "deacoudre:deacoudre",
-  "name": "Chaotic Square Dé à Coudre",
+  "translation": "square_deacoudre_chaotic",
   "map": {
     "radius": 7,
     "height": 50,
@@ -25,5 +25,8 @@
     "max": 8,
     "threshold": 2
   },
-  "concurrent": true
+  "concurrent": true,
+  "custom": {
+    "gamegui:icon": "minecraft:water_bucket"
+  }
 }

@@ -1,6 +1,6 @@
 {
   "type": "deacoudre:deacoudre",
-  "name": "Chaotic Circle Dé à Coudre",
+  "translation": "game.deacoudre.deacoudre.circle_deacoudre_chaotic",
   "map": {
     "radius": 10,
     "height": 100,
@@ -25,5 +25,8 @@
     "max": 16,
     "threshold": 2
   },
-  "concurrent": true
+  "concurrent": true,
+  "custom": {
+    "gamegui:icon": "minecraft:water_bucket"
+  }
 }

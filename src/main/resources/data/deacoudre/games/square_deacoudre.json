@@ -1,6 +1,6 @@
 {
   "type": "deacoudre:deacoudre",
-  "name": "Square Dé à Coudre",
+  "translation": "game.deacoudre.deacoudre.square_deacoudre",
   "map": {
     "radius": 7,
     "height": 50,
@@ -25,5 +25,8 @@
     "max": 8,
     "threshold": 2
   },
-  "life": 3
+  "life": 3,
+  "custom": {
+    "gamegui:icon": "minecraft:water_bucket"
+  }
 }
