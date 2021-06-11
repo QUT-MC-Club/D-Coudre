@@ -148,6 +148,8 @@ public class DeACoudreSequential {
             if (source == DamageSource.OUT_OF_WORLD || source == DamageSource.FALL) {
                 this.onPlayerFailJump(player);
             }
+        } else {
+            return ActionResult.PASS;
         }
 
         return ActionResult.FAIL;

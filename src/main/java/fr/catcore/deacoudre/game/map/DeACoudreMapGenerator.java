@@ -30,7 +30,7 @@ public class DeACoudreMapGenerator {
 
     public DeACoudreMap build() {
         MapTemplate template = MapTemplate.createEmpty();
-        DeACoudreMap map = new DeACoudreMap(template, this.config);
+        DeACoudreMap map = new DeACoudreMap(template);
 
         this.buildSpawn(template);
         this.buildPool(map, template);

@@ -31,7 +31,7 @@ public class DeACoudreSpawnLogic {
 
         ServerWorld world = this.gameSpace.getWorld();
 
-        BlockPos pos = new BlockPos(0,3,0);
+        BlockPos pos = this.map.getSpawn();
         player.teleport(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0.0F, 0.0F);
     }
 }

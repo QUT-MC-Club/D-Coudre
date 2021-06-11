@@ -16,6 +16,10 @@ import xyz.nucleoid.plasmid.game.event.PlayerDeathListener;
 import xyz.nucleoid.plasmid.game.event.RequestStartListener;
 import xyz.nucleoid.plasmid.game.rule.GameRule;
 import xyz.nucleoid.plasmid.game.rule.RuleResult;
+import xyz.nucleoid.plasmid.map.template.MapTemplate;
+import xyz.nucleoid.plasmid.map.template.MapTemplateSerializer;
+
+import java.io.IOException;
 
 public class DeACoudreWaiting {
     private final GameSpace gameSpace;
@@ -32,13 +36,25 @@ public class DeACoudreWaiting {
     }
 
     public static GameOpenProcedure open(GameOpenContext<DeACoudreConfig> context) {
-        DeACoudreMapGenerator generator = new DeACoudreMapGenerator(context.getConfig().mapConfig);
-        DeACoudreMap map = generator.build();
+        DeACoudreMap map = context.getConfig().map.map(
+                mapConfig -> {
+                    DeACoudreMapGenerator generator = new DeACoudreMapGenerator(mapConfig);
+                    return generator.build();
+                },
+                identifier -> {
+                    try {
+                        MapTemplate template = MapTemplateSerializer.INSTANCE.loadFromResource(identifier);
+                        return DeACoudreMap.fromTemplate(template);
+                    } catch (IOException e) {
+                        return DeACoudreMap.fromTemplate(MapTemplate.createEmpty());
+                    }
+                }
+        );
 
         BubbleWorldConfig worldConfig = new BubbleWorldConfig()
                 .setGenerator(map.asGenerator(context.getServer()))
                 .setDefaultGameMode(GameMode.SPECTATOR)
-                .setSpawnAt(new Vec3d(0,3,0));
+                .setSpawnAt(new Vec3d(map.getSpawn().getX(),map.getSpawn().getY(),map.getSpawn().getZ()));
 
         return context.createOpenProcedure(worldConfig, game -> {
             DeACoudreWaiting waiting = new DeACoudreWaiting(game.getSpace(), map, context.getConfig());

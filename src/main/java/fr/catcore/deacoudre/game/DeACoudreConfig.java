@@ -1,8 +1,10 @@
 package fr.catcore.deacoudre.game;
 
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import fr.catcore.deacoudre.game.map.DeACoudreMapConfig;
+import net.minecraft.util.Identifier;
 import xyz.nucleoid.plasmid.game.config.PlayerConfig;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -11,7 +13,7 @@ public class DeACoudreConfig {
 
     public static final Codec<DeACoudreConfig> CODEC = RecordCodecBuilder.create(instance -> {
         return instance.group(
-                DeACoudreMapConfig.CODEC.fieldOf("map").forGetter(config -> config.mapConfig),
+                Codec.either(DeACoudreMapConfig.CODEC, Identifier.CODEC).fieldOf("map").forGetter(config -> config.map),
                 PlayerConfig.CODEC.fieldOf("players").forGetter(config -> config.playerConfig),
                 Codec.INT.optionalFieldOf("life", 3).forGetter(config -> config.life),
                 Codec.BOOL.optionalFieldOf("concurrent", false).forGetter(config -> config.concurrent)
@@ -20,18 +22,18 @@ public class DeACoudreConfig {
 
     public static final BlockState[] PLAYER_PALETTE;
 
-    public final DeACoudreMapConfig mapConfig;
+    public final Either<DeACoudreMapConfig, Identifier> map;
     public final PlayerConfig playerConfig;
     public final int life;
     public final boolean concurrent;
 
     public DeACoudreConfig(
-            DeACoudreMapConfig mapConfig,
+            Either<DeACoudreMapConfig, Identifier> map,
             PlayerConfig playerConfig,
             int life,
             boolean concurrent
     ) {
-        this.mapConfig = mapConfig;
+        this.map = map;
         this.playerConfig = playerConfig;
         this.life = life;
         this.concurrent = concurrent;
