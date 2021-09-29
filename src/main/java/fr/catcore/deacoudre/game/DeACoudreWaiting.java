@@ -15,6 +15,7 @@ import xyz.nucleoid.fantasy.RuntimeWorldConfig;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTemplateSerializer;
 import xyz.nucleoid.plasmid.game.*;
+import xyz.nucleoid.plasmid.game.common.GameWaitingLobby;
 import xyz.nucleoid.plasmid.game.event.GameActivityEvents;
 import xyz.nucleoid.plasmid.game.event.GamePlayerEvents;
 import xyz.nucleoid.plasmid.game.player.PlayerOffer;
@@ -65,6 +66,8 @@ public class DeACoudreWaiting {
 //                .setSpawnAt(new Vec3d(map.getSpawn().getX(),map.getSpawn().getY(),map.getSpawn().getZ()));
 
         return context.openWithWorld(worldConfig, (game, world) -> {
+            GameWaitingLobby.addTo(game, config.playerConfig());
+
             var waiting = new DeACoudreWaiting(game.getGameSpace(), world, map, config);
 
             game.deny(GameRuleType.CRAFTING);
