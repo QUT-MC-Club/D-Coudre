@@ -1,6 +1,7 @@
 {
   "type": "deacoudre:deacoudre",
-  "translation": "game.deacoudre.deacoudre.donut_deacoudre",
+  "description": "game.deacoudre.donut_deacoudre.desc",
+  "icon": "minecraft:water_bucket",
   "map": {
     "radius": 10,
     "height": 100,
@@ -26,8 +27,5 @@
     "max": 8,
     "threshold": 2
   },
-  "life": 3,
-  "custom": {
-    "gamegui:icon": "minecraft:water_bucket"
-  }
+  "life": 3
 }

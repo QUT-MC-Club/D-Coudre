@@ -17,8 +17,8 @@ public class DeACoudre implements ModInitializer {
     public void onInitialize() {
         GameType.register(
                 new Identifier(ID, "deacoudre"),
-                DeACoudreWaiting::open,
-                DeACoudreConfig.CODEC
+                DeACoudreConfig.CODEC,
+                DeACoudreWaiting::open
         );
     }
 }

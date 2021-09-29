@@ -9,17 +9,11 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.GameMode;
 import xyz.nucleoid.plasmid.game.GameSpace;
 
-public class DeACoudreSpawnLogic {
-    private final GameSpace gameSpace;
-    private final DeACoudreMap map;
-
-    public DeACoudreSpawnLogic(GameSpace gameSpace, DeACoudreMap map) {
-        this.gameSpace = gameSpace;
-        this.map = map;
-    }
+public record DeACoudreSpawnLogic(GameSpace gameSpace,
+                                  DeACoudreMap map) {
 
     public void spawnPlayer(ServerPlayerEntity player, GameMode gameMode) {
-        player.setGameMode(gameMode);
+        player.changeGameMode(gameMode);
 
         player.addStatusEffect(new StatusEffectInstance(
                 StatusEffects.NIGHT_VISION,
@@ -28,10 +22,10 @@ public class DeACoudreSpawnLogic {
                 true,
                 false
         ));
-
-        ServerWorld world = this.gameSpace.getWorld();
-
-        BlockPos pos = this.map.getSpawn();
-        player.teleport(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0.0F, 0.0F);
+//
+//        ServerWorld world = this.gameSpace.getWorld();
+//
+//        BlockPos pos = this.map.getSpawn();
+//        player.teleport(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0.0F, 0.0F);
     }
 }

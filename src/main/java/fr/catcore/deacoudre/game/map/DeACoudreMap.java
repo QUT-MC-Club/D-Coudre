@@ -4,20 +4,18 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
-import xyz.nucleoid.plasmid.map.template.MapTemplate;
-import xyz.nucleoid.plasmid.map.template.MapTemplateMetadata;
-import xyz.nucleoid.plasmid.map.template.TemplateChunkGenerator;
-import xyz.nucleoid.plasmid.util.BlockBounds;
-
-import java.util.stream.Collectors;
+import xyz.nucleoid.map_templates.BlockBounds;
+import xyz.nucleoid.map_templates.MapTemplate;
+import xyz.nucleoid.map_templates.MapTemplateMetadata;
+import xyz.nucleoid.plasmid.game.world.generator.TemplateChunkGenerator;
 
 public class DeACoudreMap {
     private final MapTemplate template;
     private BlockPos spawn = BlockPos.ORIGIN;
 
-    private BlockBounds pool = BlockBounds.EMPTY;
-    private BlockBounds jumpingPlatform = BlockBounds.EMPTY;
-    private BlockBounds jumpingArea = BlockBounds.EMPTY;
+    private BlockBounds pool = null;
+    private BlockBounds jumpingPlatform = null;
+    private BlockBounds jumpingArea = null;
 
     public DeACoudreMap(MapTemplate template) {
         this.template = template;
@@ -37,7 +35,7 @@ public class DeACoudreMap {
         BlockBounds jumpingArea = templateMetadata.getFirstRegionBounds("jumping_area");
         map.setJumpingArea(jumpingArea);
 
-        Vec3d spawn = templateMetadata.getFirstRegionBounds("spawn").getCenter();
+        Vec3d spawn = templateMetadata.getFirstRegionBounds("spawn").center();
 
         map.setSpawn(new BlockPos(spawn));
 

@@ -2,8 +2,8 @@ package fr.catcore.deacoudre.game.map;
 
 import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
-import xyz.nucleoid.plasmid.map.template.MapTemplate;
-import xyz.nucleoid.plasmid.util.BlockBounds;
+import xyz.nucleoid.map_templates.BlockBounds;
+import xyz.nucleoid.map_templates.MapTemplate;
 
 public class DeACoudreMapGenerator {
     private static final BlockPos[] PLATFORM_BARRIER = new BlockPos[] {
@@ -25,7 +25,7 @@ public class DeACoudreMapGenerator {
 
     public DeACoudreMapGenerator(DeACoudreMapConfig config) {
         this.config = config;
-        this.shape = DeACoudreMapConfig.MapShape.valueOf(config.shape);
+        this.shape = DeACoudreMapConfig.MapShape.valueOf(config.shape());
     }
 
     public DeACoudreMap build() {
@@ -47,7 +47,7 @@ public class DeACoudreMapGenerator {
         for (int x = -4; x <= 4; x++) {
             for (int z = -4; z <= 4; z++) {
                 mutable.set(x, 2, z);
-                builder.setBlockState(mutable, this.config.spawnBlock);
+                builder.setBlockState(mutable, this.config.spawnBlock());
             }
         }
 
@@ -74,13 +74,13 @@ public class DeACoudreMapGenerator {
     private void buildSequentialJumpingPlatform(DeACoudreMap map, MapTemplate builder) {
         BlockPos.Mutable mutable = new BlockPos.Mutable();
         BlockPos.Mutable barrierPos = new BlockPos.Mutable();
-        int minZ = 5 + (2 * this.config.radius) + 1;
-        int minY = this.config.height;
+        int minZ = 5 + (2 * this.config.radius()) + 1;
+        int minY = this.config.height();
 
         for (int z = minZ; z <= minZ + 3; z++) {
             for (int x = -1; x <= 1; x++) {
                 mutable.set(x, minY + 1, z);
-                builder.setBlockState(mutable, this.config.jumpPlatformBlock);
+                builder.setBlockState(mutable, this.config.jumpPlatformBlock());
             }
         }
 
@@ -91,11 +91,11 @@ public class DeACoudreMapGenerator {
             }
         }
 
-        map.setJumpingPlatform(new BlockBounds(
+        map.setJumpingPlatform(BlockBounds.of(
                 new BlockPos(-1, minY + 2, minZ - 1),
                 new BlockPos(1, minY + 2, minZ + 3)
         ));
-        map.setJumpingArea(new BlockBounds(
+        map.setJumpingArea(BlockBounds.of(
                 new BlockPos(-2, minY, minZ - 1),
                 new BlockPos(2, minY, minZ + 4)
         ));

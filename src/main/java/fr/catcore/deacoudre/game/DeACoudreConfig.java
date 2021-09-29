@@ -5,11 +5,13 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import fr.catcore.deacoudre.game.map.DeACoudreMapConfig;
 import net.minecraft.util.Identifier;
-import xyz.nucleoid.plasmid.game.config.PlayerConfig;
+import xyz.nucleoid.plasmid.game.common.config.PlayerConfig;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 
-public class DeACoudreConfig {
+public record DeACoudreConfig(
+        Either<DeACoudreMapConfig, Identifier> map,
+        PlayerConfig playerConfig, int life, boolean concurrent) {
 
     public static final Codec<DeACoudreConfig> CODEC = RecordCodecBuilder.create(instance -> {
         return instance.group(
@@ -21,23 +23,6 @@ public class DeACoudreConfig {
     });
 
     public static final BlockState[] PLAYER_PALETTE;
-
-    public final Either<DeACoudreMapConfig, Identifier> map;
-    public final PlayerConfig playerConfig;
-    public final int life;
-    public final boolean concurrent;
-
-    public DeACoudreConfig(
-            Either<DeACoudreMapConfig, Identifier> map,
-            PlayerConfig playerConfig,
-            int life,
-            boolean concurrent
-    ) {
-        this.map = map;
-        this.playerConfig = playerConfig;
-        this.life = life;
-        this.concurrent = concurrent;
-    }
 
     static {
         PLAYER_PALETTE = new BlockState[]{

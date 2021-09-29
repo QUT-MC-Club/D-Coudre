@@ -17,7 +17,7 @@
   "text.dac.time.1": "1 second left to jump",
   "text.dac.time.+": "%s seconds left to jump",
 
-  "game.deacoudre.deacoudre": "Dé à Coudre",
+  "gameType.deacoudre.deacoudre": "Dé à Coudre",
   "game.deacoudre.deacoudre.desc.1": "Always jump into water!",
   "game.deacoudre.deacoudre.desc.2": "Each time you success,",
   "game.deacoudre.deacoudre.desc.3": "a block is being placed",
@@ -25,10 +25,10 @@
   "game.deacoudre.deacoudre.desc.5": "Get additional lives by",
   "game.deacoudre.deacoudre.desc.6": "jumping into 1x1 water block.",
 
-  "game.deacoudre.deacoudre.circle_deacoudre": "Circle Dé à Coudre",
-  "game.deacoudre.deacoudre.donut_deacoudre": "Donut Dé à Coudre",
-  "game.deacoudre.deacoudre.square_deacoudre": "Square Dé à Coudre",
-  "game.deacoudre.deacoudre.circle_deacoudre_chaotic": "Chaotic Circle Dé à Coudre",
-  "game.deacoudre.deacoudre.donut_deacoudre_chaotic": "Chaotic Donut Dé à Coudre",
-  "game.deacoudre.deacoudre.square_deacoudre_chaotic": "Chaotic Square Dé à Coudre"
+  "game.deacoudre.circle_deacoudre": "Circle Dé à Coudre",
+  "game.deacoudre.donut_deacoudre": "Donut Dé à Coudre",
+  "game.deacoudre.square_deacoudre": "Square Dé à Coudre",
+  "game.deacoudre.circle_deacoudre_chaotic": "Chaotic Circle Dé à Coudre",
+  "game.deacoudre.donut_deacoudre_chaotic": "Chaotic Donut Dé à Coudre",
+  "game.deacoudre.square_deacoudre_chaotic": "Chaotic Square Dé à Coudre"
 }

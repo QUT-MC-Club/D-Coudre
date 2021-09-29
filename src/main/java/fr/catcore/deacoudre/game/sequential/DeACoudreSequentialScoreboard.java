@@ -9,16 +9,16 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import xyz.nucleoid.plasmid.widget.GlobalWidgets;
-import xyz.nucleoid.plasmid.widget.SidebarWidget;
+import xyz.nucleoid.plasmid.game.common.GlobalWidgets;
+import xyz.nucleoid.plasmid.game.common.widget.SidebarWidget;
 
 import java.util.Collection;
 
 public class DeACoudreSequentialScoreboard implements AutoCloseable {
 
-    private SidebarWidget sidebar;
-    private DeACoudreSequential game;
-    private ScoreboardObjective lifeObjective;
+    private final SidebarWidget sidebar;
+    private final DeACoudreSequential game;
+    private final ScoreboardObjective lifeObjective;
 
     private boolean dirty = true;
 
@@ -31,7 +31,7 @@ public class DeACoudreSequentialScoreboard implements AutoCloseable {
     }
 
     public static DeACoudreSequentialScoreboard create(DeACoudreSequential game, GlobalWidgets widgets) {
-        ServerScoreboard scoreboard = game.gameSpace.getWorld().getServer().getScoreboard();
+        ServerScoreboard scoreboard = game.world.getServer().getScoreboard();
 
         Text title = new LiteralText("Dé à Coudre").formatted(Formatting.BLUE, Formatting.BOLD);
         SidebarWidget sidebar = widgets.addSidebar(title);
@@ -61,24 +61,24 @@ public class DeACoudreSequentialScoreboard implements AutoCloseable {
             long seconds = (this.ticks / 20) % 60;
             long minutes = this.ticks / (20 * 60);
 
-            content.writeLine(String.format("%sTime: %s%02d:%02d", Formatting.RED.toString() + Formatting.BOLD, Formatting.RESET, minutes, seconds));
+            content.add(Text.of(String.format("%sTime: %s%02d:%02d", Formatting.RED.toString() + Formatting.BOLD, Formatting.RESET, minutes, seconds)));
 
             long playersAlive = this.game.participants().size();
-            content.writeLine(Formatting.BLUE.toString() + playersAlive + " players alive");
-            content.writeLine("");
+            content.add(Text.of(Formatting.BLUE.toString() + playersAlive + " players alive"));
+            content.add(Text.of(""));
 
             ServerPlayerEntity currentJumper = this.game.currentJumper;
             ServerPlayerEntity nextJumper = this.game.getNextJumper();
 
             if (currentJumper != null) {
-                content.writeLine("Jumping: " + currentJumper.getName().getString());
+                content.add(Text.of("Jumping: " + currentJumper.getName().getString()));
             }
             if (nextJumper != null) {
-                content.writeLine("Up Next: " + nextJumper.getName().getString());
+                content.add(Text.of("Up Next: " + nextJumper.getName().getString()));
             }
         });
 
-        ServerScoreboard scoreboard = this.game.gameSpace.getWorld().getServer().getScoreboard();
+        ServerScoreboard scoreboard = this.game.world.getServer().getScoreboard();
         clear(scoreboard, lifeObjective);
         for (Object2IntMap.Entry<ServerPlayerEntity> entry : this.game.lives()) {
             if (entry.getKey() == null) continue;
@@ -97,7 +97,7 @@ public class DeACoudreSequentialScoreboard implements AutoCloseable {
 
     @Override
     public void close() {
-        ServerScoreboard scoreboard = this.game.gameSpace.getWorld().getServer().getScoreboard();
+        ServerScoreboard scoreboard = this.game.world.getServer().getScoreboard();
         scoreboard.removeObjective(this.lifeObjective);
     }
 }

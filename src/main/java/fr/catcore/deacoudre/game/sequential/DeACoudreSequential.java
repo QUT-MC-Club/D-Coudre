@@ -21,12 +21,15 @@ import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.plasmid.game.GameCloseReason;
 import xyz.nucleoid.plasmid.game.GameSpace;
-import xyz.nucleoid.plasmid.game.event.*;
-import xyz.nucleoid.plasmid.game.player.JoinResult;
+import xyz.nucleoid.plasmid.game.common.GlobalWidgets;
+import xyz.nucleoid.plasmid.game.event.GameActivityEvents;
+import xyz.nucleoid.plasmid.game.event.GamePlayerEvents;
+import xyz.nucleoid.plasmid.game.player.PlayerOffer;
+import xyz.nucleoid.plasmid.game.player.PlayerOfferResult;
 import xyz.nucleoid.plasmid.game.player.PlayerSet;
-import xyz.nucleoid.plasmid.game.rule.GameRule;
-import xyz.nucleoid.plasmid.game.rule.RuleResult;
-import xyz.nucleoid.plasmid.widget.GlobalWidgets;
+import xyz.nucleoid.plasmid.game.rule.GameRuleType;
+import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
+import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,6 +41,7 @@ public class DeACoudreSequential {
 
     public final GameSpace gameSpace;
     private final DeACoudreMap gameMap;
+    public final ServerWorld world;
 
     private final DeACoudrePool pool;
 
@@ -57,8 +61,9 @@ public class DeACoudreSequential {
     private long closeTime = -1;
     private int jumpingTicks;
 
-    private DeACoudreSequential(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config, Set<ServerPlayerEntity> participants, GlobalWidgets widgets) {
+    private DeACoudreSequential(GameSpace gameSpace, ServerWorld world, DeACoudreMap map, DeACoudreConfig config, Set<ServerPlayerEntity> participants, GlobalWidgets widgets) {
         this.gameSpace = gameSpace;
+        this.world = world;
         this.config = config;
         this.gameMap = map;
         this.participants = participants;
@@ -66,12 +71,12 @@ public class DeACoudreSequential {
         this.jumpOrder = new ArrayList<>(participants);
         Collections.shuffle(this.jumpOrder);
 
-        this.pool = new DeACoudrePool(gameSpace, map);
+        this.pool = new DeACoudrePool(world, map);
 
         this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
 
         this.lives = new DeACoudrePlayerLives();
-        this.lives.addPlayers(this.participants, config.life);
+        this.lives.addPlayers(this.participants, config.life());
 
         this.scoreboard = DeACoudreSequentialScoreboard.create(this, widgets);
         this.singleplayer = this.participants.size() <= 1;
@@ -85,31 +90,30 @@ public class DeACoudreSequential {
         return this.lives;
     }
 
-    public static void open(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config) {
-        gameSpace.openGame(game -> {
-            GlobalWidgets widgets = new GlobalWidgets(game);
+    public static void open(GameSpace gameSpace, ServerWorld world,  DeACoudreMap map, DeACoudreConfig config) {
+        gameSpace.setActivity(game -> {
+            var widgets = GlobalWidgets.addTo(game);
 
             Set<ServerPlayerEntity> participants = Sets.newHashSet(gameSpace.getPlayers());
-            DeACoudreSequential active = new DeACoudreSequential(gameSpace, map, config, participants, widgets);
+            var active = new DeACoudreSequential(gameSpace, world, map, config, participants, widgets);
 
-            game.setRule(GameRule.CRAFTING, RuleResult.DENY);
-            game.setRule(GameRule.PORTALS, RuleResult.DENY);
-            game.setRule(GameRule.PVP, RuleResult.DENY);
-            game.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
-            game.setRule(GameRule.FALL_DAMAGE, RuleResult.ALLOW);
-            game.setRule(GameRule.HUNGER, RuleResult.DENY);
+            game.deny(GameRuleType.CRAFTING);
+            game.deny(GameRuleType.PORTALS);
+            game.deny(GameRuleType.PVP);
+            game.deny(GameRuleType.BLOCK_DROPS);
+            game.allow(GameRuleType.FALL_DAMAGE);
+            game.deny(GameRuleType.HUNGER);
 
-            game.on(GameOpenListener.EVENT, active::onOpen);
-            game.on(GameCloseListener.EVENT, active::onClose);
+            game.listen(GameActivityEvents.ENABLE, active::onOpen);
+            game.listen(GameActivityEvents.DISABLE, active::onClose);
+            game.listen(GameActivityEvents.TICK, active::tick);
 
-            game.on(OfferPlayerListener.EVENT, player -> JoinResult.ok());
-            game.on(PlayerAddListener.EVENT, active::addPlayer);
-            game.on(PlayerRemoveListener.EVENT, active::eliminatePlayer);
+            game.listen(GamePlayerEvents.OFFER, active::offerPlayer);
 
-            game.on(GameTickListener.EVENT, active::tick);
+            game.listen(GamePlayerEvents.LEAVE, active::eliminatePlayer);
 
-            game.on(PlayerDamageListener.EVENT, active::onPlayerDamage);
-            game.on(PlayerDeathListener.EVENT, active::onPlayerDeath);
+            game.listen(PlayerDamageEvent.EVENT, active::onPlayerDamage);
+            game.listen(PlayerDeathEvent.EVENT, active::onPlayerDeath);
         });
     }
 
@@ -119,8 +123,8 @@ public class DeACoudreSequential {
         }
 
         MutableText text;
-        if (this.config.life > 1) {
-            text = new TranslatableText("text.dac.game.start_plural", this.config.life);
+        if (this.config.life() > 1) {
+            text = new TranslatableText("text.dac.game.start_plural", this.config.life());
         } else {
             text = new TranslatableText("text.dac.game.start_singular");
         }
@@ -135,10 +139,14 @@ public class DeACoudreSequential {
         this.scoreboard.close();
     }
 
-    private void addPlayer(ServerPlayerEntity player) {
-        if (!this.participants.contains(player)) {
-            this.spawnSpectator(player);
-        }
+    private PlayerOfferResult offerPlayer(PlayerOffer offer) {
+        return offer.accept(this.world, Vec3d.ofCenter(this.gameMap.getSpawn()))
+                .and(() -> {
+                    var player = offer.player();
+                    if (!this.participants.contains(player)) {
+                        this.spawnSpectator(player);
+                    }
+                });
     }
 
     private ActionResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
@@ -184,11 +192,11 @@ public class DeACoudreSequential {
 
             int remainingLife = this.lives.grantLife(player);
             players.sendMessage(new TranslatableText("text.dac.game.dac", player.getDisplayName(), remainingLife).formatted(Formatting.AQUA));
-            players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
-            players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
+            players.playSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
+            players.playSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
         } else {
             this.pool.putBlockAt(player, pos);
-            players.sendSound(SoundEvents.AMBIENT_UNDERWATER_ENTER);
+            players.playSound(SoundEvents.AMBIENT_UNDERWATER_ENTER);
         }
     }
 
@@ -226,7 +234,7 @@ public class DeACoudreSequential {
 
             PlayerSet players = this.gameSpace.getPlayers();
             players.sendMessage(message);
-            players.sendSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP);
+            players.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP);
 
             this.spawnSpectator(player);
 
@@ -239,7 +247,7 @@ public class DeACoudreSequential {
     private void tick() {
         ServerPlayerEntity jumper = this.currentJumper;
         PlayerSet players = this.gameSpace.getPlayers();
-        ServerWorld world = this.gameSpace.getWorld();
+        ServerWorld world = this.world;
         long time = world.getTime();
 
         // check for invalid jumper
@@ -315,9 +323,9 @@ public class DeACoudreSequential {
     }
 
     private void spawnJumper(ServerPlayerEntity jumper) {
-        Vec3d platformSpawn = this.gameMap.getJumpingPlatform().getCenter();
+        Vec3d platformSpawn = this.gameMap.getJumpingPlatform().center();
 
-        jumper.teleport(this.gameSpace.getWorld(), platformSpawn.x, platformSpawn.y, platformSpawn.z, 180F, 0F);
+        jumper.teleport(this.world, platformSpawn.x, platformSpawn.y, platformSpawn.z, 180F, 0F);
         jumper.fallDistance = 0.0F;
 
         jumper.playSound(SoundEvents.BLOCK_BELL_USE, SoundCategory.MASTER, 1.0F, 1.0F);
@@ -363,7 +371,7 @@ public class DeACoudreSequential {
 
         PlayerSet players = this.gameSpace.getPlayers();
         players.sendMessage(message);
-        players.sendSound(SoundEvents.ENTITY_VILLAGER_YES);
+        players.playSound(SoundEvents.ENTITY_VILLAGER_YES);
     }
 
     private void tickClosing(GameSpace game, long time) {
@@ -372,14 +380,7 @@ public class DeACoudreSequential {
         }
     }
 
-    static class WinResult {
-        final ServerPlayerEntity winningPlayer;
-        final boolean win;
-
-        private WinResult(ServerPlayerEntity winningPlayer, boolean win) {
-            this.winningPlayer = winningPlayer;
-            this.win = win;
-        }
+    record WinResult(ServerPlayerEntity winningPlayer, boolean win) {
 
         static WinResult no() {
             return new WinResult(null, false);

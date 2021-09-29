@@ -1,7 +1,6 @@
 package fr.catcore.deacoudre.game.concurrent;
 
 import com.google.common.collect.Sets;
-import fr.catcore.deacoudre.game.DeACoudreConfig;
 import fr.catcore.deacoudre.game.DeACoudrePool;
 import fr.catcore.deacoudre.game.DeACoudreSpawnLogic;
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
@@ -21,22 +20,23 @@ import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.plasmid.game.GameCloseReason;
 import xyz.nucleoid.plasmid.game.GameSpace;
+import xyz.nucleoid.plasmid.game.common.GlobalWidgets;
+import xyz.nucleoid.plasmid.game.common.widget.SidebarWidget;
 import xyz.nucleoid.plasmid.game.event.*;
-import xyz.nucleoid.plasmid.game.player.JoinResult;
+import xyz.nucleoid.plasmid.game.player.PlayerOffer;
+import xyz.nucleoid.plasmid.game.player.PlayerOfferResult;
 import xyz.nucleoid.plasmid.game.player.PlayerSet;
-import xyz.nucleoid.plasmid.game.rule.GameRule;
-import xyz.nucleoid.plasmid.game.rule.RuleResult;
-import xyz.nucleoid.plasmid.widget.GlobalWidgets;
-import xyz.nucleoid.plasmid.widget.SidebarWidget;
+import xyz.nucleoid.plasmid.game.rule.GameRuleType;
+import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
+import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
 import java.util.Comparator;
 import java.util.Set;
 
 public class DeACoudreConcurrent {
-    private final DeACoudreConfig config;
-
     public final GameSpace gameSpace;
     private final DeACoudreMap gameMap;
+    public final ServerWorld world;
 
     private final DeACoudrePool pool;
 
@@ -49,43 +49,42 @@ public class DeACoudreConcurrent {
 
     private long closeTime = -1;
 
-    private DeACoudreConcurrent(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config, Set<ServerPlayerEntity> jumpers, GlobalWidgets widgets) {
+    private DeACoudreConcurrent(GameSpace gameSpace, ServerWorld world, DeACoudreMap map, Set<ServerPlayerEntity> jumpers, GlobalWidgets widgets) {
         this.gameSpace = gameSpace;
-        this.config = config;
         this.gameMap = map;
         this.jumpers = jumpers;
+        this.world = world;
 
-        this.pool = new DeACoudrePool(gameSpace, map);
+        this.pool = new DeACoudrePool(world, map);
 
         this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
 
         this.sidebar = widgets.addSidebar(new LiteralText("Dé à Coudre").formatted(Formatting.BLUE, Formatting.BOLD));
     }
 
-    public static void open(GameSpace gameSpace, DeACoudreMap map, DeACoudreConfig config) {
-        gameSpace.openGame(game -> {
-            GlobalWidgets widgets = new GlobalWidgets(game);
+    public static void open(GameSpace gameSpace, ServerWorld world, DeACoudreMap map) {
+        gameSpace.setActivity(game -> {
+            GlobalWidgets widgets = GlobalWidgets.addTo(game);
 
             Set<ServerPlayerEntity> jumpers = Sets.newHashSet(gameSpace.getPlayers());
-            DeACoudreConcurrent active = new DeACoudreConcurrent(gameSpace, map, config, jumpers, widgets);
+            DeACoudreConcurrent active = new DeACoudreConcurrent(gameSpace, world, map, jumpers, widgets);
 
-            game.setRule(GameRule.CRAFTING, RuleResult.DENY);
-            game.setRule(GameRule.PORTALS, RuleResult.DENY);
-            game.setRule(GameRule.PVP, RuleResult.DENY);
-            game.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
-            game.setRule(GameRule.FALL_DAMAGE, RuleResult.ALLOW);
-            game.setRule(GameRule.HUNGER, RuleResult.DENY);
+            game.deny(GameRuleType.CRAFTING);
+            game.deny(GameRuleType.PORTALS);
+            game.deny(GameRuleType.PVP);
+            game.deny(GameRuleType.BLOCK_DROPS);
+            game.allow(GameRuleType.FALL_DAMAGE);
+            game.deny(GameRuleType.HUNGER);
 
-            game.on(GameOpenListener.EVENT, active::onOpen);
+            game.listen(GameActivityEvents.ENABLE, active::onOpen);
+            game.listen(GameActivityEvents.TICK, active::tick);
 
-            game.on(OfferPlayerListener.EVENT, player -> JoinResult.ok());
-            game.on(PlayerAddListener.EVENT, active::addPlayer);
-            game.on(PlayerRemoveListener.EVENT, active::removePlayer);
+            game.listen(GamePlayerEvents.OFFER, active::offerPlayer);
 
-            game.on(GameTickListener.EVENT, active::tick);
+            game.listen(GamePlayerEvents.LEAVE, active::removePlayer);
 
-            game.on(PlayerDamageListener.EVENT, active::onPlayerDamage);
-            game.on(PlayerDeathListener.EVENT, active::onPlayerDeath);
+            game.listen(PlayerDamageEvent.EVENT, active::onPlayerDamage);
+            game.listen(PlayerDeathEvent.EVENT, active::onPlayerDeath);
         });
     }
 
@@ -97,10 +96,14 @@ public class DeACoudreConcurrent {
         this.updateSidebar();
     }
 
-    private void addPlayer(ServerPlayerEntity player) {
-        if (!this.jumpers.contains(player)) {
-            this.spawnSpectator(player);
-        }
+    private PlayerOfferResult offerPlayer(PlayerOffer offer) {
+        return offer.accept(this.world, Vec3d.ofCenter(this.gameMap.getSpawn()))
+                .and(() -> {
+                    var player = offer.player();
+                    if (!this.jumpers.contains(player)) {
+                        this.spawnSpectator(player);
+                    }
+                });
     }
 
     private ActionResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
@@ -130,14 +133,14 @@ public class DeACoudreConcurrent {
             this.points.addTo(player, 10);
             this.updateSidebar();
 
-            players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
-            players.sendSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
+            players.playSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
+            players.playSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
         } else {
             this.points.addTo(player, 1);
             this.updateSidebar();
 
             this.pool.putBlockAt(player, pos);
-            players.sendSound(SoundEvents.AMBIENT_UNDERWATER_ENTER);
+            players.playSound(SoundEvents.AMBIENT_UNDERWATER_ENTER);
         }
     }
 
@@ -151,7 +154,7 @@ public class DeACoudreConcurrent {
     }
 
     private void tick() {
-        ServerWorld world = this.gameSpace.getWorld();
+        ServerWorld world = this.world;
         long time = world.getTime();
 
         if (this.closeTime > 0) {
@@ -178,21 +181,19 @@ public class DeACoudreConcurrent {
     }
 
     private void spawnJumper(ServerPlayerEntity jumper) {
-        Vec3d platformSpawn = this.gameMap.getJumpingPlatform().getCenter();
+        Vec3d platformSpawn = this.gameMap.getJumpingPlatform().center();
 
-        jumper.teleport(this.gameSpace.getWorld(), platformSpawn.x, platformSpawn.y, platformSpawn.z, 180F, 0F);
+        jumper.teleport(this.world, platformSpawn.x, platformSpawn.y, platformSpawn.z, 180F, 0F);
         jumper.fallDistance = 0.0F;
     }
 
     private void updateSidebar() {
-        this.sidebar.set(content -> {
-            this.jumpers.stream()
-                    .sorted(Comparator.comparingInt(this.points::getInt).reversed())
-                    .forEach(player -> {
-                        int points = this.points.getInt(player);
-                        content.writeLine(Formatting.AQUA + player.getDisplayName().getString() + ": " + Formatting.GOLD + points);
-                    });
-        });
+        this.sidebar.set(content -> this.jumpers.stream()
+                .sorted(Comparator.comparingInt(this.points::getInt).reversed())
+                .forEach(player -> {
+                    int points = this.points.getInt(player);
+                    content.add(Text.of(Formatting.AQUA + player.getDisplayName().getString() + ": " + Formatting.GOLD + points));
+                }));
     }
 
     @Nullable
@@ -220,7 +221,7 @@ public class DeACoudreConcurrent {
 
         PlayerSet players = this.gameSpace.getPlayers();
         players.sendMessage(message);
-        players.sendSound(SoundEvents.ENTITY_VILLAGER_YES);
+        players.playSound(SoundEvents.ENTITY_VILLAGER_YES);
     }
 
     private void tickClosing(GameSpace game, long time) {
