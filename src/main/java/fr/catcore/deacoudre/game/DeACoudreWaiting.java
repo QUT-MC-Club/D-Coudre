@@ -37,7 +37,7 @@ public class DeACoudreWaiting {
         this.map = map;
         this.config = config;
         this.world = world;
-        this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
+        this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, world, map);
     }
 
     public static GameOpenProcedure open(GameOpenContext<DeACoudreConfig> context) {

@@ -57,7 +57,7 @@ public class DeACoudreConcurrent {
 
         this.pool = new DeACoudrePool(world, map);
 
-        this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
+        this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, world, map);
 
         this.sidebar = widgets.addSidebar(new LiteralText("Dé à Coudre").formatted(Formatting.BLUE, Formatting.BOLD));
     }

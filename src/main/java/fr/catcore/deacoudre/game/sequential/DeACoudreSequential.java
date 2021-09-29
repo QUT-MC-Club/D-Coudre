@@ -73,7 +73,7 @@ public class DeACoudreSequential {
 
         this.pool = new DeACoudrePool(world, map);
 
-        this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, map);
+        this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, world, map);
 
         this.lives = new DeACoudrePlayerLives();
         this.lives.addPlayers(this.participants, config.life());
