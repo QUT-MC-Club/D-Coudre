@@ -9,7 +9,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.GameMode;
 import xyz.nucleoid.plasmid.game.GameSpace;
 
-public record DeACoudreSpawnLogic(GameSpace gameSpace,
+public record DeACoudreSpawnLogic(GameSpace gameSpace, ServerWorld world,
                                   DeACoudreMap map) {
 
     public void spawnPlayer(ServerPlayerEntity player, GameMode gameMode) {
@@ -22,10 +22,8 @@ public record DeACoudreSpawnLogic(GameSpace gameSpace,
                 true,
                 false
         ));
-//
-//        ServerWorld world = this.gameSpace.getWorld();
-//
-//        BlockPos pos = this.map.getSpawn();
-//        player.teleport(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0.0F, 0.0F);
+
+        BlockPos pos = this.map.getSpawn();
+        player.teleport(this.world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0.0F, 0.0F);
     }
 }
