@@ -12,7 +12,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
@@ -124,9 +123,9 @@ public class DeACoudreSequential {
 
         MutableText text;
         if (this.config.life() > 1) {
-            text = new TranslatableText("text.dac.game.start_plural", this.config.life());
+            text = Text.translatable("text.dac.game.start_plural", this.config.life());
         } else {
-            text = new TranslatableText("text.dac.game.start_singular");
+            text = Text.translatable("text.dac.game.start_singular");
         }
 
         this.gameSpace.getPlayers().sendMessage(text.formatted(Formatting.GREEN));
@@ -170,11 +169,11 @@ public class DeACoudreSequential {
             return;
         }
 
-        MutableText message = new TranslatableText("text.dac.game.lose_life", player.getDisplayName());
+        MutableText message = Text.translatable("text.dac.game.lose_life", player.getDisplayName());
         if (livesRemaining > 1) {
-            message = message.append(new TranslatableText("text.dac.game.lives_left", livesRemaining));
+            message = message.append(Text.translatable("text.dac.game.lives_left", livesRemaining));
         } else {
-            message = message.append(new TranslatableText("text.dac.game.life_left"));
+            message = message.append(Text.translatable("text.dac.game.life_left"));
         }
 
         this.gameSpace.getPlayers().sendMessage(message.formatted(Formatting.YELLOW));
@@ -191,7 +190,7 @@ public class DeACoudreSequential {
             this.pool.putCoudreAt(pos);
 
             int remainingLife = this.lives.grantLife(player);
-            players.sendMessage(new TranslatableText("text.dac.game.dac", player.getDisplayName(), remainingLife).formatted(Formatting.AQUA));
+            players.sendMessage(Text.translatable("text.dac.game.dac", player.getDisplayName(), remainingLife).formatted(Formatting.AQUA));
             players.playSound(SoundEvents.ENTITY_FIREWORK_ROCKET_LARGE_BLAST);
             players.playSound(SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE);
         } else {
@@ -229,7 +228,7 @@ public class DeACoudreSequential {
             this.jumpOrder.remove(player);
             this.lives.removePlayer(player);
 
-            Text message = new TranslatableText("text.dac.game.eliminated", player.getDisplayName())
+            Text message = Text.translatable("text.dac.game.eliminated", player.getDisplayName())
                     .formatted(Formatting.RED);
 
             PlayerSet players = this.gameSpace.getPlayers();
@@ -276,15 +275,15 @@ public class DeACoudreSequential {
         if (this.jumpingTicks % 20 == 0) {
             int remainingJumpingSeconds = Math.max(20 - jumpingSeconds, 0);
             if (remainingJumpingSeconds == 1) {
-                jumper.sendMessage(new TranslatableText("text.dac.time.1"), true);
+                jumper.sendMessage(Text.translatable("text.dac.time.1"), true);
             } else {
-                jumper.sendMessage(new TranslatableText("text.dac.time.+", remainingJumpingSeconds), true);
+                jumper.sendMessage(Text.translatable("text.dac.time.+", remainingJumpingSeconds), true);
             }
 
             if (remainingJumpingSeconds == 0) {
                 int remainingLife = this.lives.takeLife(jumper);
 
-                players.sendMessage(new TranslatableText("text.dac.game.slow", jumper.getName().getString(), remainingLife).formatted(Formatting.YELLOW));
+                players.sendMessage(Text.translatable("text.dac.game.slow", jumper.getName().getString(), remainingLife).formatted(Formatting.YELLOW));
                 this.nextJumper();
 
                 if (remainingLife == 0) {
@@ -330,7 +329,7 @@ public class DeACoudreSequential {
 
         jumper.playSound(SoundEvents.BLOCK_BELL_USE, SoundCategory.MASTER, 1.0F, 1.0F);
 
-        this.gameSpace.getPlayers().sendMessage(new TranslatableText("text.dac.game.turn", jumper.getDisplayName()).formatted(Formatting.BLUE));
+        this.gameSpace.getPlayers().sendMessage(Text.translatable("text.dac.game.turn", jumper.getDisplayName()).formatted(Formatting.BLUE));
     }
 
     private WinResult checkWinResult() {
@@ -364,9 +363,9 @@ public class DeACoudreSequential {
 
         Text message;
         if (winningPlayer != null) {
-            message = new TranslatableText("text.dac.game.won", winningPlayer.getDisplayName()).formatted(Formatting.GOLD);
+            message = Text.translatable("text.dac.game.won", winningPlayer.getDisplayName()).formatted(Formatting.GOLD);
         } else {
-            message = new TranslatableText("text.dac.game.won.nobody").formatted(Formatting.GOLD);
+            message = Text.translatable("text.dac.game.won.nobody").formatted(Formatting.GOLD);
         }
 
         PlayerSet players = this.gameSpace.getPlayers();

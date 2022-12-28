@@ -6,7 +6,6 @@ import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.ScoreboardPlayerScore;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import xyz.nucleoid.plasmid.game.common.GlobalWidgets;
@@ -33,7 +32,7 @@ public class DeACoudreSequentialScoreboard implements AutoCloseable {
     public static DeACoudreSequentialScoreboard create(DeACoudreSequential game, GlobalWidgets widgets) {
         ServerScoreboard scoreboard = game.world.getServer().getScoreboard();
 
-        Text title = new LiteralText("Dé à Coudre").formatted(Formatting.BLUE, Formatting.BOLD);
+        Text title = Text.literal("Dé à Coudre").formatted(Formatting.BLUE, Formatting.BOLD);
         SidebarWidget sidebar = widgets.addSidebar(title);
 
         ScoreboardObjective scoreboardObjective2 = new ScoreboardObjective(
