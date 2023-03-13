@@ -7,7 +7,7 @@ import fr.catcore.deacoudre.game.sequential.DeACoudreSequential;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
@@ -96,7 +96,7 @@ public class DeACoudreWaiting {
     private PlayerOfferResult offerPlayer(PlayerOffer offer) {
         var spawn = this.map.getSpawn();
         if (spawn == null) {
-            return offer.reject(new LiteralText("No spawn defined on map!"));
+            return offer.reject(Text.literal("No spawn defined on map!"));
         }
 
         return offer.accept(this.world, Vec3d.ofCenter(spawn))

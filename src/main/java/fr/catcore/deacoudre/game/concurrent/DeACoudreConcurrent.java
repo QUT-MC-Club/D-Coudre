@@ -9,9 +9,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
@@ -59,7 +57,7 @@ public class DeACoudreConcurrent {
 
         this.spawnLogic = new DeACoudreSpawnLogic(gameSpace, world, map);
 
-        this.sidebar = widgets.addSidebar(new LiteralText("Dé à Coudre").formatted(Formatting.BLUE, Formatting.BOLD));
+        this.sidebar = widgets.addSidebar(Text.literal("Dé à Coudre").formatted(Formatting.BLUE, Formatting.BOLD));
     }
 
     public static void open(GameSpace gameSpace, ServerWorld world, DeACoudreMap map) {
@@ -217,7 +215,7 @@ public class DeACoudreConcurrent {
     }
 
     private void broadcastWin(ServerPlayerEntity winningPlayer) {
-        Text message = new TranslatableText("text.dac.game.won", winningPlayer.getDisplayName()).formatted(Formatting.GOLD);
+        Text message = Text.translatable("text.dac.game.won", winningPlayer.getDisplayName()).formatted(Formatting.GOLD);
 
         PlayerSet players = this.gameSpace.getPlayers();
         players.sendMessage(message);
