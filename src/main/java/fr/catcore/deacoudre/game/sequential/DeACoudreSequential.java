@@ -6,6 +6,7 @@ import fr.catcore.deacoudre.game.DeACoudrePool;
 import fr.catcore.deacoudre.game.DeACoudreSpawnLogic;
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -152,7 +153,7 @@ public class DeACoudreSequential {
         if (player == null) return ActionResult.FAIL;
 
         if (player == this.currentJumper) {
-            if (source == DamageSource.OUT_OF_WORLD || source == DamageSource.FALL) {
+            if (source.isOf(DamageTypes.OUT_OF_WORLD) || source.isOf(DamageTypes.FALL)) {
                 this.onPlayerFailJump(player);
             }
         } else {
