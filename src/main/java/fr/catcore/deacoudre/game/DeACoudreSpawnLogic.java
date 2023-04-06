@@ -17,7 +17,7 @@ public record DeACoudreSpawnLogic(GameSpace gameSpace, ServerWorld world,
 
         player.addStatusEffect(new StatusEffectInstance(
                 StatusEffects.NIGHT_VISION,
-                20 * 60 * 60,
+                StatusEffectInstance.INFINITE,
                 1,
                 true,
                 false

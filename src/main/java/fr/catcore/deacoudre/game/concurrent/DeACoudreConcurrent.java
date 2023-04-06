@@ -6,6 +6,7 @@ import fr.catcore.deacoudre.game.DeACoudreSpawnLogic;
 import fr.catcore.deacoudre.game.map.DeACoudreMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
@@ -107,7 +108,7 @@ public class DeACoudreConcurrent {
     private ActionResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         if (player == null) return ActionResult.FAIL;
 
-        if (source == DamageSource.OUT_OF_WORLD || source == DamageSource.FALL) {
+        if (source.isOf(DamageTypes.OUT_OF_WORLD) || source.isOf(DamageTypes.FALL)) {
             this.onPlayerFailJump(player);
             return ActionResult.FAIL;
         }

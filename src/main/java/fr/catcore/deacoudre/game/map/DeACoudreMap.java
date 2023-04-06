@@ -37,7 +37,7 @@ public class DeACoudreMap {
 
         Vec3d spawn = templateMetadata.getFirstRegionBounds("spawn").center();
 
-        map.setSpawn(new BlockPos(spawn));
+        map.setSpawn(BlockPos.ofFloored(spawn));
 
         return map;
     }
